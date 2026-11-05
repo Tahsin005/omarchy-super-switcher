@@ -71,7 +71,7 @@ Item {
   }
 
   IpcHandler {
-    target: "macos.dock"
+    target: "harryxu.super-switcher"
     function altTabNext(): void { root.cycle(1) }
     function altTabPrev(): void { root.cycle(-1) }
     function altTabCancel(): void { panel.cancel() }
@@ -141,12 +141,12 @@ Item {
 
   Process {
     id: layerRule
-    command: ["hyprctl", "eval", "hl.layer_rule({ match = { namespace = \"macos-dock-alt-tab\" }, no_anim = true, animation = \"none\" })"]
+    command: ["hyprctl", "eval", "hl.layer_rule({ match = { namespace = \"harryxu-super-switcher\" }, no_anim = true, animation = \"none\" })"]
   }
 
   Process {
     id: registerBindings
-    command: ["hyprctl", "eval", "o.rebind(\"SUPER + TAB\", \"App switcher next\", \"omarchy-shell -q macos.dock altTabNext\") o.rebind(\"SUPER + SHIFT + TAB\", \"App switcher prev\", \"omarchy-shell -q macos.dock altTabPrev\")"]
+    command: ["hyprctl", "eval", "o.rebind(\"SUPER + TAB\", \"App switcher next\", \"omarchy-shell -q harryxu.super-switcher altTabNext\") o.rebind(\"SUPER + SHIFT + TAB\", \"App switcher prev\", \"omarchy-shell -q harryxu.super-switcher altTabPrev\")"]
   }
 
   // Shell startup can reapply config bindings after this plugin is loaded.

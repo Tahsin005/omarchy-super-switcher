@@ -23,7 +23,7 @@ def active_window():
 
 def switcher_visible():
     layers = json.loads(run('hyprctl', '-j', 'layers'))
-    return any(layer.get('namespace') == 'macos-dock-alt-tab'
+    return any(layer.get('namespace') == 'harryxu-super-switcher'
                for output in layers.values()
                for level in output.get('levels', {}).values()
                for layer in level)
@@ -44,7 +44,7 @@ def switch(method):
     # A fast tap can release Super before the command reaches the shell.
     # Invoke that exact late-arriving command with no modifier held; no
     # subsequent key release will be delivered to the newly mapped panel.
-    run('omarchy-shell', 'macos.dock', method)
+    run('omarchy-shell', 'harryxu.super-switcher', method)
     deadline = time.monotonic() + 2
     candidate = None
     stable_since = time.monotonic()
@@ -73,7 +73,7 @@ def main():
         assert_no_dock_layers()
         for method in ('altTabNext', 'altTabPrev'):
             for trial in range(3):
-                run('omarchy-shell', 'macos.dock', 'altTabCancel')
+                run('omarchy-shell', 'harryxu.super-switcher', 'altTabCancel')
                 run('hyprctl', 'dispatch', 'hl.dsp.focus({ window = "address:' + address + '" })')
                 time.sleep(0.15)
                 switch(method)
@@ -86,7 +86,7 @@ def main():
         assert_no_dock_layers()
         print('PASS no dock surfaces, edge triggers, or spacers', flush=True)
     finally:
-        run('omarchy-shell', 'macos.dock', 'altTabCancel')
+        run('omarchy-shell', 'harryxu.super-switcher', 'altTabCancel')
         run('hyprctl', 'dispatch', 'hl.dsp.focus({ window = "address:' + address + '" })')
 
 

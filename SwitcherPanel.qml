@@ -47,12 +47,12 @@ PanelWindow {
     // query the compositor's key state to cover that gap without a delay.
     // Later releases are handled by Keys.onReleased as usual.
     var command = "if not (hl.is_key_down(\"Super_L\") or hl.is_key_down(\"Super_R\")) then "
-      + "hl.exec_cmd(\"omarchy-shell -q macos.dock.switcher acceptRelease " + root.releaseGeneration + "\") end"
+      + "hl.exec_cmd(\"omarchy-shell -q harryxu.super-switcher.switcher acceptRelease " + root.releaseGeneration + "\") end"
     Quickshell.execDetached(["hyprctl", "eval", command])
   }
 
   IpcHandler {
-    target: "macos.dock.switcher"
+    target: "harryxu.super-switcher.switcher"
     function acceptRelease(generation: int): void {
       // Ignore a reply from a session that was canceled or already committed.
       if (root.active && generation === root.releaseGeneration) root.activateSelected()
@@ -105,7 +105,7 @@ PanelWindow {
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
   WlrLayershell.layer: WlrLayer.Overlay
-  WlrLayershell.namespace: "macos-dock-alt-tab"
+  WlrLayershell.namespace: "harryxu-super-switcher"
   WlrLayershell.keyboardFocus: root.active ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
   anchors { top: true; bottom: true; left: true; right: true }
   mask: Region { item: switcherSurface }

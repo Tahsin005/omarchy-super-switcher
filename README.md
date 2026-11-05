@@ -3,7 +3,7 @@
 A macOS-style application switcher for Omarchy and Hyprland. It shows one icon
 per running application, ordered by recent use, on the currently focused output.
 
-The plugin ID remains `macos.dock` for compatibility with existing installations.
+The plugin ID is `harryxu.super-switcher`.
 The plugin now contains only application switching: no dock bar, pinned apps,
 auto-hide, drag-and-drop, window previews, or icon-management tools.
 
@@ -32,9 +32,9 @@ Link the checkout into the user plugin directory, using its manifest ID:
 
 ```bash
 mkdir -p ~/.config/omarchy/plugins
-ln -s /absolute/path/to/omarchy-dock ~/.config/omarchy/plugins/macos.dock
+ln -s /absolute/path/to/omarchy-dock ~/.config/omarchy/plugins/harryxu.super-switcher
 omarchy-shell shell rescanPlugins
-omarchy plugin enable macos.dock
+omarchy plugin enable harryxu.super-switcher
 ```
 
 If the destination is already occupied, remove the previous plugin installation
@@ -53,9 +53,9 @@ editing Hyprland configuration files or changing Alt-based shortcuts.
 The existing command names remain available:
 
 ```bash
-omarchy-shell macos.dock altTabNext
-omarchy-shell macos.dock altTabPrev
-omarchy-shell macos.dock altTabCancel
+omarchy-shell harryxu.super-switcher altTabNext
+omarchy-shell harryxu.super-switcher altTabPrev
+omarchy-shell harryxu.super-switcher altTabCancel
 ```
 
 A next/previous call made with Super already released completes the switch
@@ -84,7 +84,7 @@ This switches applications temporarily and restores the original window focus.
 ## Removal
 
 ```bash
-omarchy plugin remove macos.dock --yes
+omarchy plugin remove harryxu.super-switcher --yes
 ```
 
 For a development installation, removal unlinks the plugin and keeps the checkout.
