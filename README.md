@@ -190,6 +190,8 @@ Behavior:
   focused one, like macOS.
 - Release `Super` to activate the selected application (its most recently
   focused window, or launch it if none is open).
+- A quick press and release of `Super + Tab` switches immediately, even if
+  Super was released before the switcher received keyboard focus.
 - `Enter` activates the selection, `Escape` cancels without changing focus,
   arrow keys move the selection, and the mouse can hover to select or click
   to activate.
@@ -311,6 +313,16 @@ For reference, the companion files with all defaults applied:
 ./tests/run.sh
 qmllint DockPanel.qml DockPanelBase.qml DockItem.qml DockMenu.qml
 ```
+
+For the quick-release switcher regression, run on an unlocked Hyprland desktop
+with this plugin enabled and at least two running applications:
+
+```bash
+python3 tests/switcher-live.test.py
+```
+
+This checks forward, reverse, and consecutive quick switches through the real
+IPC path when Super is already released. It restores the original window focus.
 
 The dock fills every connected output by default, with one layer surface per
 screen placed from that screen's own dimensions. `screenMode` narrows it to one

@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons
 import "DockModel.js" as DockModel
@@ -21,6 +22,8 @@ PanelWindow {
   property bool active: false
   property var apps: []
   property int selectedIndex: -1
+  property int releaseGeneration: 0
+  readonly property bool keyboardReady: root.active && keyCatcher.activeFocus && keyCatcher.Window.active
   property var placements: ({})
   property real surfaceWidth: 0
   property var iconSourceFor: function(app) { return "" }
@@ -67,12 +70,37 @@ PanelWindow {
   }
 
   onAppsChanged: root.relayout()
+  onKeyboardReadyChanged: if (root.keyboardReady) root.checkSuperReleased()
+
+  function checkSuperReleased() {
+    // A quick tap can release Super before IPC opens the window. No release
+    // event will reach us in that case. Once keyboard focus is established,
+    // query the compositor's key state to cover that gap without a delay.
+    // Later releases are handled by Keys.onReleased as usual.
+    var command = "if not (hl.is_key_down(\"Super_L\") or hl.is_key_down(\"Super_R\")) then "
+      + "hl.exec_cmd(\"omarchy-shell -q macos.dock.switcher acceptRelease " + root.releaseGeneration + "\") end"
+    Quickshell.execDetached(["hyprctl", "eval", command])
+  }
+
+  IpcHandler {
+    target: "macos.dock.switcher"
+    function acceptRelease(generation: int): void {
+      // Ignore a reply from a session that was canceled or already committed.
+      if (root.active && generation === root.releaseGeneration) root.activateSelected()
+    }
+  }
 
   function open(list, initialIndex) {
+    root.releaseGeneration++
     root.apps = list || []
     root.selectedIndex = initialIndex >= 0 && initialIndex < root.apps.length ? initialIndex : 0
     root.active = true
-    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+    Qt.callLater(function() {
+      if (!root.active) return
+      keyCatcher.forceActiveFocus()
+      // A new session can begin before the previous window loses focus.
+      if (root.keyboardReady) root.checkSuperReleased()
+    })
   }
 
   function next() {
@@ -86,6 +114,7 @@ PanelWindow {
   }
 
   function cancel() {
+    root.releaseGeneration++
     root.active = false
     root.apps = []
     root.selectedIndex = -1
