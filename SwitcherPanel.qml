@@ -3,13 +3,8 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons
-import "DockModel.js" as DockModel
 
-// macOS-style app switcher HUD. The UI is a mirror image of the dock itself
-// (same glass surface, same icons) scaled up 30%, with the running dots,
-// icon magnification and name labels removed: a flat row of equally sized
-// icons. Selection is keyboard-driven while the dock's own mouse semantics
-// (hover to select, click to activate) still apply.
+// macOS-style application switcher: one icon per running program.
 //
 // Keyboard contract: Hyprland consumes the SUPER+TAB global binds (exec
 // omarchy-shell ... altTabNext/altTabPrev), so the bound key never reaches
@@ -24,11 +19,10 @@ PanelWindow {
   property int selectedIndex: -1
   property int releaseGeneration: 0
   readonly property bool keyboardReady: root.active && keyCatcher.activeFocus && keyCatcher.Window.active
-  property var placements: ({})
-  property real surfaceWidth: 0
+  readonly property real surfaceWidth: root.apps.length ? root.apps.length * root.slotWidth + (root.apps.length - 1) * root.slotSpacing + 2 * root.sidePadding : 0
   property var iconSourceFor: function(app) { return "" }
 
-  // The dock's layout constants scaled by ~2.1 (15% over the previous 1.82).
+  // Application icons in a centered, fixed-spacing row.
   property int iconSize: 105
   property int slotWidth: 121
   property int slotSpacing: 16
@@ -45,31 +39,6 @@ PanelWindow {
     return Quickshell.iconPath(src, true)
   }
 
-  // Flat layout: the dock's slot geometry scaled up, no cursor magnification.
-  function relayout() {
-    if (root.apps.length === 0) {
-      root.surfaceWidth = 0
-      root.placements = {}
-      return
-    }
-    var flow = []
-    for (var i = 0; i < root.apps.length; i++)
-      flow.push({ id: root.apps[i].id })
-    var opts = {
-      slotWidth: root.slotWidth,
-      spacing: root.slotSpacing,
-      iconSize: root.iconSize,
-      hoverScale: 1,
-      radius: 1,
-      sidePadding: root.sidePadding,
-      separatorWidth: 14
-    }
-    var result = DockModel.computeLayout(flow, -1, opts)
-    root.placements = result.placements
-    root.surfaceWidth = result.totalWidth
-  }
-
-  onAppsChanged: root.relayout()
   onKeyboardReadyChanged: if (root.keyboardReady) root.checkSuperReleased()
 
   function checkSuperReleased() {
@@ -139,11 +108,11 @@ PanelWindow {
   WlrLayershell.namespace: "macos-dock-alt-tab"
   WlrLayershell.keyboardFocus: root.active ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
   anchors { top: true; bottom: true; left: true; right: true }
-  mask: Region { item: dockSurface }
+  mask: Region { item: switcherSurface }
 
-  // The dock's own glass surface, centered on screen instead of bottom-anchored.
+  // Centered switcher surface.
   Rectangle {
-    id: dockSurface
+    id: switcherSurface
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.verticalCenter: parent.verticalCenter
     width: root.surfaceWidth
@@ -154,10 +123,10 @@ PanelWindow {
     border.width: 1
     opacity: root.active ? 1 : 0.96
 
-    Item {
-      id: dockRow
+    Row {
+      id: appRow
       anchors.centerIn: parent
-      width: root.surfaceWidth - 2 * root.sidePadding
+      spacing: root.slotSpacing
       height: root.iconSize + 26
 
       Repeater {
@@ -168,16 +137,10 @@ PanelWindow {
           required property var modelData
           required property int index
 
-          // The icon geometry scaled up, minus the running dot, the
-          // magnification springs and all interaction beyond hover/click.
-          // The item spans the slot so the centered icon sits at the slot's
-          // visual center — a single app icon stays centered in the HUD.
           width: root.slotWidth
           height: root.iconSize + 18
-          x: root.placements[modelData.id] ? root.placements[modelData.id].x : 0
 
-          // Subtle highlight box: a slightly lighter variant of the dock's own
-          // background around the app being tabbed to (and hovered).
+          // Highlight the application selected by keyboard or pointer.
           Rectangle {
             anchors.centerIn: parent
             width: root.iconSize + 12
@@ -198,7 +161,7 @@ PanelWindow {
             cache: true
 
             Text {
-        textFormat: Text.PlainText
+              textFormat: Text.PlainText
               anchors.centerIn: parent
               visible: parent.status !== Image.Ready
               text: "◆"
@@ -231,14 +194,7 @@ PanelWindow {
           root.cancel(); event.accepted = true; return
         }
         if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
-          // Bound via Hyprland (omarchy-shell altTabNext/Prev) — compositor
-          // consumes the key, so ignore here to avoid double-step when both
-          // paths fire. Keep fallback only if the bind is missing: check by
-          // seeing if the HUD was opened (active). When active, IPC drives
-          // navigation; Tab reaching the panel means the bind was not consumed.
-          // To avoid double-step, do not advance here when active.
-          if (root.active) { event.accepted = true; return }
-          if (event.key === Qt.Key_Backtab) root.prev(); else root.next()
+          // Hyprland's global bindings drive navigation; do not double-step.
           event.accepted = true; return
         }
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {

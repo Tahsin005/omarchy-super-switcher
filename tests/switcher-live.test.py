@@ -29,6 +29,16 @@ def switcher_visible():
                for layer in level)
 
 
+def assert_no_dock_layers():
+    layers = json.loads(run('hyprctl', '-j', 'layers'))
+    removed = {'macos-dock', 'macos-dock-edge', 'macos-dock-spacer', 'macos-dock-material'}
+    found = [layer.get('namespace')
+             for output in layers.values()
+             for level in output.get('levels', {}).values()
+             for layer in level if layer.get('namespace') in removed]
+    assert not found, f'Removed dock layers are still mapped: {found}'
+
+
 def switch(method):
     before = active_window().get('class')
     # A fast tap can release Super before the command reaches the shell.
@@ -60,6 +70,7 @@ def main():
     address = original.get('address', '')
     assert re.fullmatch(r'0x[0-9a-f]+', address), 'Start with an application focused'
     try:
+        assert_no_dock_layers()
         for method in ('altTabNext', 'altTabPrev'):
             for trial in range(3):
                 run('omarchy-shell', 'macos.dock', 'altTabCancel')
@@ -72,6 +83,8 @@ def main():
         for trial in range(3):
             switch('altTabNext')
             print(f'PASS consecutive quick tap {trial + 1}', flush=True)
+        assert_no_dock_layers()
+        print('PASS no dock surfaces, edge triggers, or spacers', flush=True)
     finally:
         run('omarchy-shell', 'macos.dock', 'altTabCancel')
         run('hyprctl', 'dispatch', 'hl.dsp.focus({ window = "address:' + address + '" })')

@@ -1,13 +1,15 @@
 {
   "schemaVersion": 1,
   "id": "macos.dock",
-  "name": "macOS Style Dock",
+  "name": "macOS App Switcher",
   "version": "0.1.22",
   "author": "ifubaraboye",
-  "description": "A compact, glassy, configurable macOS style dock with pinning, auto-hiding and Super+Tab app switcher. Right click to change icons on the dock.",
-  "kinds": ["panel"],
+  "description": "A macOS-style Super+Tab application switcher with recent-app ordering and quick-release activation.",
+  "kinds": [
+    "panel"
+  ],
   "keepLoaded": true,
   "entryPoints": {
-    "panel": "DockPanel.qml"
+    "panel": "Switcher.qml"
   }
 }
