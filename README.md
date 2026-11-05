@@ -35,13 +35,25 @@ display margins.
 Omarchy with Quickshell and Hyprland's Lua configuration API, including
 `hl.is_key_down`, `o.rebind`, and the `omarchy-shell` IPC command.
 
-## Development installation
+## Installation
 
-Link the checkout into the user plugin directory, using its manifest ID:
+Install and enable the plugin from
+[harryxu/omarchy-super-switcher](https://github.com/harryxu/omarchy-super-switcher):
 
 ```bash
+omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enable
+```
+
+## Development installation
+
+For development, clone the repository and link the checkout into the user plugin
+directory using its manifest ID, `harryxu.super-switcher`:
+
+```bash
+git clone https://github.com/harryxu/omarchy-super-switcher.git
+cd omarchy-super-switcher
 mkdir -p ~/.config/omarchy/plugins
-ln -s /absolute/path/to/omarchy-dock ~/.config/omarchy/plugins/harryxu.super-switcher
+ln -s "$PWD" ~/.config/omarchy/plugins/harryxu.super-switcher
 omarchy-shell shell rescanPlugins
 omarchy plugin enable harryxu.super-switcher
 ```
