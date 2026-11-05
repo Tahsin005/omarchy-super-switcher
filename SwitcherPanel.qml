@@ -24,6 +24,7 @@ PanelWindow {
 
   // Application icons in a centered, fixed-spacing row.
   property int iconSize: 105
+  property int artworkSize: 84
   property int slotWidth: 121
   property int slotSpacing: 16
   property int sidePadding: 38
@@ -150,24 +151,13 @@ PanelWindow {
             visible: root.selectedIndex === index
           }
 
-          Image {
+          SwitcherIcon {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             width: root.iconSize
             height: root.iconSize
             source: root.iconSource(modelData)
-            sourceSize: Qt.size(root.iconSize * 2, root.iconSize * 2)
-            fillMode: Image.PreserveAspectFit
-            cache: true
-
-            Text {
-              textFormat: Text.PlainText
-              anchors.centerIn: parent
-              visible: parent.status !== Image.Ready
-              text: "◆"
-              color: Color.foreground
-              font.pixelSize: root.iconSize * 0.42
-            }
+            artworkSize: root.artworkSize
           }
 
           MouseArea {

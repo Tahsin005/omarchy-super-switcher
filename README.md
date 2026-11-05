@@ -20,6 +20,9 @@ auto-hide, drag-and-drop, window previews, or icon-management tools.
 
 The switcher uses native desktop-entry icons with a bundled fallback for unknown
 applications. It does not write dock settings or download icons.
+Visible icon artwork is centered and fitted to an 84px maximum dimension,
+matching the smaller native icons. Transparent padding and faint shadows do not
+determine the size; source geometry is measured once and cached for later switches.
 
 ## Requirements
 
