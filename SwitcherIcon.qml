@@ -53,7 +53,12 @@ Item {
 
   Canvas {
     id: sampler
-    anchors.fill: parent
+    // Keep the item, viewport, and pixel grid the same size. Scaling a 210px
+    // canvas into the smaller icon item changes the sampled alpha bounds on
+    // HiDPI displays and consequently enlarges and offsets the visible icon.
+    width: root.sampleSize
+    height: root.sampleSize
+    opacity: 0
     visible: !root.bounds
     canvasSize: Qt.size(root.sampleSize, root.sampleSize)
     renderTarget: Canvas.Image

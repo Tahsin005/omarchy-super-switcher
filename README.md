@@ -95,6 +95,15 @@ Run the application grouping, icon lookup, MRU ordering, and navigation tests:
 omarchy plugin validate .
 ```
 
+Run the Qt rendering regressions at 100%, 160%, and 200% scale (requires Qt Test):
+
+```bash
+./tests/render.sh
+```
+
+These verify the visible artwork size and centering for opaque and
+asymmetrically padded icons, including reopening from the geometry cache.
+
 On an unlocked Hyprland desktop with this plugin enabled and at least two
 applications running, test quick-release switching through the live IPC path:
 

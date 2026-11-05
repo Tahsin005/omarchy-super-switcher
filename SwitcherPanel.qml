@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import qs.Commons
+import qs.Commons as Commons
 
 // macOS-style application switcher: one icon per running program.
 //
@@ -24,7 +24,7 @@ PanelWindow {
   property var iconSourceFor: function(app) { return "" }
 
   // Application icons in a centered, fixed-spacing row.
-  property int iconSize: 105
+  readonly property int iconSize: root.slotWidth
   property int artworkSize: 84
   property int slotWidth: 96
   property int slotSpacing: 12
@@ -34,7 +34,8 @@ PanelWindow {
   property int selectionRadius: 20
   property int screenMargin: 32
   property int topPadding: 16
-  property int labelHeight: 20
+  property int labelHeight: 24
+  property int labelSpacing: 8
   property int labelMargin: 12
 
   signal activated(string appId, string appName)
@@ -42,7 +43,7 @@ PanelWindow {
   function iconSource(app) {
     var src = root.iconSourceFor(app)
     if (!src) return ""
-    if (String(src).indexOf("/") === 0) return Util.fileUrl(src)
+    if (String(src).indexOf("/") === 0) return Commons.Util.fileUrl(src)
     if (String(src).indexOf("file:") === 0 || String(src).indexOf("image:") === 0) return src
     return Quickshell.iconPath(src, true)
   }
@@ -126,8 +127,8 @@ PanelWindow {
     width: root.surfaceWidth
     height: root.surfaceHeight
     radius: root.surfaceRadius
-    color: Util.alpha(Color.background, 0.88)
-    border.color: Util.alpha(Color.foreground, 0.20)
+    color: Commons.Util.alpha(Commons.Color.background, 0.88)
+    border.color: Commons.Util.alpha(Commons.Color.foreground, 0.20)
     border.width: 1
     opacity: root.active ? 1 : 0.96
 
@@ -167,8 +168,8 @@ PanelWindow {
           width: root.slotWidth
           height: root.slotWidth
           radius: root.selectionRadius
-          color: Util.alpha(Color.accent, 0.28)
-          border.color: Util.alpha(Color.accent, 0.90)
+          color: Commons.Util.alpha(Commons.Color.accent, 0.28)
+          border.color: Commons.Util.alpha(Commons.Color.accent, 0.90)
           border.width: 2
           visible: root.selectedIndex === index
         }
@@ -207,13 +208,13 @@ PanelWindow {
       width: Math.max(0, Math.min(200, 2 * Math.min(iconCenter - root.labelMargin, switcherSurface.width - root.labelMargin - iconCenter)))
       height: root.labelHeight
       x: iconCenter - width / 2
-      y: appRow.y + appRow.height + 3
+      y: appRow.y + appRow.height + root.labelSpacing
       horizontalAlignment: Text.AlignHCenter
       verticalAlignment: Text.AlignVCenter
       elide: Text.ElideRight
       maximumLineCount: 1
-      color: Color.foreground
-      font.family: Style.fontFamily
+      color: Commons.Color.foreground
+      font.family: Commons.Style.fontFamily
       font.pixelSize: 13
       font.weight: Font.Medium
     }
