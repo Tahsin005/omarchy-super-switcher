@@ -10,10 +10,10 @@ import "DockModel.js" as DockModel
 // icons. Selection is keyboard-driven while the dock's own mouse semantics
 // (hover to select, click to activate) still apply.
 //
-// Keyboard contract: Hyprland consumes the ALT+GRAVE global binds (exec
+// Keyboard contract: Hyprland consumes the SUPER+TAB global binds (exec
 // omarchy-shell ... altTabNext/altTabPrev), so the bound key never reaches
 // this window. While visible it grabs the keyboard exclusively and receives
-// the unbound keys: Alt release activates, Escape cancels, Enter activates,
+// the unbound keys: Super release activates, Escape cancels, Enter activates,
 // arrows move the selection.
 PanelWindow {
   id: root
@@ -223,13 +223,13 @@ PanelWindow {
         }
       }
       Keys.onReleased: function(event) {
-        // Hyprland delivers the Alt release (pressed before this surface
+        // Hyprland delivers the Super release (pressed before this surface
         // gained keyboard focus) with an unmapped keysym: Qt reports key 0,
-        // but the native scan code is intact (64 = Alt_L, 108 = Alt_R).
-        // Match by scan code so "release Alt to activate" works even for the
+        // but the native scan code is intact (133 = Super_L, 134 = Super_R).
+        // Match by scan code so "release Super to activate" works even for the
         // modifier that was held before the HUD appeared.
         var scan = event.nativeScanCode
-        if (event.key === Qt.Key_Alt || scan === 64 || scan === 108) {
+        if (event.key === Qt.Key_Meta || scan === 133 || scan === 134) {
           root.activateSelected(); event.accepted = true
         }
       }

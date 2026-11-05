@@ -31,7 +31,7 @@ Item {
   property var appEntries: []
   property var runningIds: []
   // Most-recently-used app ids, front = most recent. Maintained from focus
-  // changes; powers the Alt+Tab switcher ordering (an app switcher cycles by
+  // changes; powers the Super+Tab switcher ordering (an app switcher cycles by
   // recency, not by the dock's pinned-first visual order).
   property var mruIds: []
   // Repeater model: stable id strings. Replaced only when the id set changes
@@ -180,7 +180,7 @@ Item {
   }
   readonly property var activeScreen: root.screenByName(root.activeScreenName)
   // The App Switcher opens on the monitor Hyprland has focused, not on a fixed
-  // output: that is where the user is looking when they hit ALT+TAB.
+  // output: that is where the user is looking when they hit SUPER+TAB.
   function focusedScreen() {
     var name = Hyprland.focusedMonitor ? String(Hyprland.focusedMonitor.name) : ""
     return root.screenByName(name)
@@ -929,7 +929,7 @@ Item {
     if (!trashCheckProcess.running) trashCheckProcess.running = true
   }
 
-  // ---- Alt+Tab app switcher -------------------------------------------------
+  // ---- Super+Tab app switcher -----------------------------------------------
   // The switcher is an app switcher, so recency is tracked per application
   // (not per window). The dock's visual order (pinned first) is irrelevant
   // here: focus history drives the cycle order.
@@ -1789,7 +1789,7 @@ Item {
       }
     }
     function onActiveToplevelChanged() {
-      // Keep the Alt+Tab MRU list in sync with focus changes. The switcher
+      // Keep the Super+Tab MRU list in sync with focus changes. The switcher
       // only tracks apps the dock knows about.
       var mruId = root.dockIdForHyprlandWindow(Hyprland.activeToplevel)
       if (mruId && root.runningIds.indexOf(mruId) !== -1) root.touchMru(mruId)
@@ -1837,16 +1837,15 @@ Item {
     if (!helperResolveProcess.running) helperResolveProcess.running = true
     if (!downloadsDirProcess.running) downloadsDirProcess.running = true
     if (!trashCheckProcess.running) trashCheckProcess.running = true
-    // The alt-tab HUD opens/closes on keypresses; Hyprland's default layer
+    // The app-switcher HUD opens/closes on keypresses; Hyprland's default layer
     // fade would add a visible fade-in. Disable compositor animation for
     // both layer namespaces so the HUD pops in instantly.
     if (!layerRuleProcess.running) layerRuleProcess.running = true
     // Register the app-switcher keybinds so the HUD works out of the box.
-    // Config-file binds load before this runtime eval, so a user's own bind
-    // for the same combo takes precedence.
+    // Runtime binds leave the user's Hyprland config files unchanged.
     if (!altTabBindProcess.running) altTabBindProcess.running = true
     // The shell applies the config-file binds (tiling.lua etc.) AFTER this
-    // Component.onCompleted eval, clobbering our ALT+TAB takeover. Re-apply
+    // Component.onCompleted eval, clobbering our SUPER+TAB takeover. Re-apply
     // the eval on a short retry window until the config binds have landed;
     // the eval is idempotent (unbind then bind).
     altTabBindRetry.start()
@@ -1872,11 +1871,9 @@ Item {
 
   Process {
     id: altTabBindProcess
-    // Take over the default Omarchy ALT+TAB window cycling so the macOS-style
-    // app switcher HUD is the primary alt-tab. The defaults bind ALT+TAB twice
-    // (cycle + bring-to-top), so both must be unbound first. ALT+GRAVE stays
-    // as the dedicated fallback combo.
-    command: ["hyprctl", "eval", "hl.unbind(\"ALT + TAB\") hl.unbind(\"ALT + SHIFT + TAB\") hl.unbind(\"ALT + GRAVE\") hl.unbind(\"ALT + SHIFT + GRAVE\") o.bind(\"ALT + TAB\", \"App switcher next\", \"omarchy-shell -q macos.dock altTabNext\") o.bind(\"ALT + SHIFT + TAB\", \"App switcher prev\", \"omarchy-shell -q macos.dock altTabPrev\") o.bind(\"ALT + GRAVE\", \"App switcher next\", \"omarchy-shell -q macos.dock altTabNext\") o.bind(\"ALT + SHIFT + GRAVE\", \"App switcher prev\", \"omarchy-shell -q macos.dock altTabPrev\")"]
+    // Reserve Super+Tab for app switching without changing Alt-based binds.
+    // Rebinding keeps startup retries from registering duplicate actions.
+    command: ["hyprctl", "eval", "o.rebind(\"SUPER + TAB\", \"App switcher next\", \"omarchy-shell -q macos.dock altTabNext\") o.rebind(\"SUPER + SHIFT + TAB\", \"App switcher prev\", \"omarchy-shell -q macos.dock altTabPrev\")"]
   }
 
   Variants {

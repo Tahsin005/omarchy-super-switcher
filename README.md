@@ -23,7 +23,7 @@ A compact, bottom-centered macOS-inspired dock plugin for Omarchy.
   terminal needed
 - "Manage Icons…" lets you assign icons to *any* installed app, even before it
   first appears on the dock
-- macOS-style Alt+Tab application switcher (most-recently-used order)
+- macOS-style Super+Tab application switcher (most-recently-used order)
 - Auto-hide by default: the dock glides completely off-screen after 1s
   idle and reveals when the cursor hits the bottom 3px edge (100ms
   delay, 380ms hide / 280ms reveal). Tiled windows use the full screen
@@ -159,7 +159,7 @@ Auto-hide is **enabled by default** (fresh installs and existing installs withou
 before gliding **380ms** completely off-screen; hitting the bottom **3px** edge
 reveals it after **100ms** with a **280ms** glide up. It stays visible while
 the cursor is over the dock *or* the bottom edge (`dockEngaged`), and hide is
-suppressed while a menu, icon picker, window preview, drag, or Alt+Tab HUD is
+suppressed while a menu, icon picker, window preview, drag, or Super+Tab HUD is
 active. Auto-hide can be toggled without restarting the shell:
 
 ```bash
@@ -174,21 +174,21 @@ The preference is persisted in `~/.config/omarchy/dock-settings.json` and surviv
 restarts. When auto-hide is on, tiled windows use the full screen and the dock
 overlays them; when off, the dock reserves its footprint as an exclusive zone.
 
-## Alt+Tab application switcher
+## Super+Tab application switcher
 
 The plugin ships a macOS-style app switcher (a glass pill with the running
 applications in most-recently-used order). No setup is needed: when the shell
 starts, the plugin registers the bindings automatically:
 
-- `ALT + GRAVE` (Alt + `` ` ``) — next application
-- `ALT + SHIFT + GRAVE` (Alt + Shift + `` ` ``) — previous application
+- `SUPER + TAB` — next application
+- `SUPER + SHIFT + TAB` — previous application
 
 Behavior:
 
-- Hold `Alt`, press `` ` `` to cycle forward, `Shift + `` ` `` to cycle
+- Hold `Super`, press `Tab` to cycle forward, `Shift + Tab` to cycle
   backward. The first press selects the application after the currently
   focused one, like macOS.
-- Release `Alt` to activate the selected application (its most recently
+- Release `Super` to activate the selected application (its most recently
   focused window, or launch it if none is open).
 - `Enter` activates the selection, `Escape` cancels without changing focus,
   arrow keys move the selection, and the mouse can hover to select or click
@@ -196,22 +196,21 @@ Behavior:
 - The switcher opens on the dock's primary screen and cycles applications
   only — pinned-but-closed applications are never included.
 
-### Changing the keybind
+### Additional keybinds
 
 The registered binds live only for the current session (they are re-added at
-each shell start and never written to any config file). To use a different
-combination, add your own bind to `~/.config/hypr/bindings.lua` — your
-config-file bind takes precedence over the plugin's default:
+each shell start and never written to any config file). The plugin reserves
+`SUPER + TAB` and `SUPER + SHIFT + TAB`; Alt-based bindings are left unchanged.
+To add another Super-based combination, add your own bind to
+`~/.config/hypr/bindings.lua`:
 
 ```lua
-o.bind("ALT + TAB", "App switcher next", "omarchy-shell -q macos.dock altTabNext")
-o.bind("ALT + SHIFT + TAB", "App switcher prev", "omarchy-shell -q macos.dock altTabPrev")
+o.rebind("SUPER + GRAVE", "App switcher next", "omarchy-shell -q macos.dock altTabNext")
+o.rebind("SUPER + SHIFT + GRAVE", "App switcher prev", "omarchy-shell -q macos.dock altTabPrev")
 ```
 
-Note: Omarchy's default config already binds `ALT + TAB` to window cycling, so
-if you rebind to `ALT + TAB` you must first free it with `hl.unbind("ALT + TAB")`
-in your `bindings.lua` (and `hl.unbind("ALT + SHIFT + TAB")` for the previous
-direction).
+`o.rebind` replaces any existing action for that combination. Selection is
+confirmed when Super is released.
 
 For testing without bindings:
 

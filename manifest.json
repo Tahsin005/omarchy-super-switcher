@@ -4,7 +4,7 @@
   "name": "macOS Style Dock",
   "version": "0.1.22",
   "author": "ifubaraboye",
-  "description": "A compact, glassy, configurable macOS style dock with pinning, auto-hiding and Alt+Tab app switcher. Right click to change icons on the dock.",
+  "description": "A compact, glassy, configurable macOS style dock with pinning, auto-hiding and Super+Tab app switcher. Right click to change icons on the dock.",
   "kinds": ["panel"],
   "keepLoaded": true,
   "entryPoints": {
