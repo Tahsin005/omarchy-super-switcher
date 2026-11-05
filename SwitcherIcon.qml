@@ -54,6 +54,7 @@ Item {
   Canvas {
     id: sampler
     anchors.fill: parent
+    visible: !root.bounds
     canvasSize: Qt.size(root.sampleSize, root.sampleSize)
     renderTarget: Canvas.Image
     contextType: "2d"

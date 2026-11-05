@@ -19,16 +19,20 @@ PanelWindow {
   property int selectedIndex: -1
   property int releaseGeneration: 0
   readonly property bool keyboardReady: root.active && keyCatcher.activeFocus && keyCatcher.Window.active
-  readonly property real surfaceWidth: root.apps.length ? root.apps.length * root.slotWidth + (root.apps.length - 1) * root.slotSpacing + 2 * root.sidePadding : 0
+  readonly property real naturalWidth: root.apps.length ? root.apps.length * root.slotWidth + (root.apps.length - 1) * root.slotSpacing + 2 * root.sidePadding : 0
+  readonly property real surfaceWidth: Math.min(root.naturalWidth, Math.max(0, root.width - 2 * root.screenMargin))
   property var iconSourceFor: function(app) { return "" }
 
   // Application icons in a centered, fixed-spacing row.
   property int iconSize: 105
   property int artworkSize: 84
-  property int slotWidth: 121
-  property int slotSpacing: 16
-  property int sidePadding: 38
-  property int surfaceHeight: 210
+  property int slotWidth: 96
+  property int slotSpacing: 12
+  property int sidePadding: 24
+  property int surfaceHeight: 144
+  property int surfaceRadius: 36
+  property int selectionRadius: 20
+  property int screenMargin: 32
 
   signal activated(string appId, string appName)
 
@@ -118,57 +122,68 @@ PanelWindow {
     anchors.verticalCenter: parent.verticalCenter
     width: root.surfaceWidth
     height: root.surfaceHeight
-    radius: 22
+    radius: root.surfaceRadius
     color: Util.alpha(Color.background, 0.88)
     border.color: Util.alpha(Color.foreground, 0.20)
     border.width: 1
     opacity: root.active ? 1 : 0.96
 
-    Row {
+    ListView {
       id: appRow
       anchors.centerIn: parent
+      width: Math.max(0, parent.width - 2 * root.sidePadding)
+      height: root.iconSize
+      orientation: ListView.Horizontal
       spacing: root.slotSpacing
-      height: root.iconSize + 26
+      clip: root.naturalWidth > root.surfaceWidth
+      boundsBehavior: Flickable.StopAtBounds
+      keyNavigationEnabled: false
+      currentIndex: root.selectedIndex
+      model: root.apps
 
-      Repeater {
-        model: root.apps
+      function revealSelection() {
+        if (currentIndex >= 0 && currentIndex < count)
+          positionViewAtIndex(currentIndex, ListView.Contain)
+      }
+      onCurrentIndexChanged: Qt.callLater(appRow.revealSelection)
+      onCountChanged: Qt.callLater(appRow.revealSelection)
+      onWidthChanged: Qt.callLater(appRow.revealSelection)
 
-        delegate: Item {
-          id: item
-          required property var modelData
-          required property int index
+      delegate: Item {
+        id: item
+        required property var modelData
+        required property int index
 
+        width: root.slotWidth
+        height: root.iconSize
+
+        // Highlight the application selected by keyboard or pointer.
+        Rectangle {
+          anchors.centerIn: parent
           width: root.slotWidth
-          height: root.iconSize + 18
+          height: root.slotWidth
+          radius: root.selectionRadius
+          color: Util.alpha(Color.foreground, 0.10)
+          visible: root.selectedIndex === index
+        }
 
-          // Highlight the application selected by keyboard or pointer.
-          Rectangle {
-            anchors.centerIn: parent
-            width: root.iconSize + 12
-            height: root.iconSize + 12
-            radius: 20
-            color: Util.alpha(Color.foreground, 0.10)
-            visible: root.selectedIndex === index
-          }
+        SwitcherIcon {
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.verticalCenter: parent.verticalCenter
+          width: root.iconSize
+          height: root.iconSize
+          source: root.iconSource(modelData)
+          artworkSize: root.artworkSize
+        }
 
-          SwitcherIcon {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            width: root.iconSize
-            height: root.iconSize
-            source: root.iconSource(modelData)
-            artworkSize: root.artworkSize
-          }
-
-          MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onEntered: root.selectedIndex = index
-            onClicked: {
-              root.selectedIndex = index
-              root.activateSelected()
-            }
+        MouseArea {
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onEntered: root.selectedIndex = index
+          onClicked: {
+            root.selectedIndex = index
+            root.activateSelected()
           }
         }
       }

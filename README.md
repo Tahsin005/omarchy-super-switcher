@@ -23,6 +23,9 @@ applications. It does not write dock settings or download icons.
 Visible icon artwork is centered and fitted to an 84px maximum dimension,
 matching the smaller native icons. Transparent padding and faint shadows do not
 determine the size; source geometry is measured once and cached for later switches.
+The compact layout uses 96px selection tiles with 12px between tiles, 24px
+surface padding, and a 144px panel height. Longer lists scroll horizontally to
+keep the selected application visible within the display margins.
 
 ## Requirements
 
