@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons as Commons
+import "SwitcherKeys.js" as SwitcherKeys
 
 // macOS-style application switcher: one icon per running program.
 //
@@ -18,6 +19,7 @@ PanelWindow {
   property var apps: []
   property int selectedIndex: -1
   property int releaseGeneration: 0
+  property var heldSuperKeys: []
   readonly property bool keyboardReady: root.active && keyCatcher.activeFocus && keyCatcher.Window.active
   readonly property real naturalWidth: root.apps.length ? root.apps.length * root.slotWidth + (root.apps.length - 1) * root.slotSpacing + 2 * root.sidePadding : 0
   readonly property real surfaceWidth: Math.min(root.naturalWidth, Math.max(0, root.width - 2 * root.screenMargin))
@@ -55,8 +57,7 @@ PanelWindow {
     // event will reach us in that case. Once keyboard focus is established,
     // query the compositor's key state to cover that gap without a delay.
     // Later releases are handled by Keys.onReleased as usual.
-    var command = "if not (hl.is_key_down(\"Super_L\") or hl.is_key_down(\"Super_R\")) then "
-      + "hl.exec_cmd(\"omarchy-shell -q harryxu.super-switcher.switcher acceptRelease " + root.releaseGeneration + "\") end"
+    var command = SwitcherKeys.releaseCommand(root.heldSuperKeys, root.releaseGeneration)
     Quickshell.execDetached(["hyprctl", "eval", command])
   }
 
@@ -68,8 +69,9 @@ PanelWindow {
     }
   }
 
-  function open(list, initialIndex) {
+  function open(list, initialIndex, heldKeys) {
     root.releaseGeneration++
+    root.heldSuperKeys = heldKeys || []
     root.apps = list || []
     root.selectedIndex = initialIndex >= 0 && initialIndex < root.apps.length ? initialIndex : 0
     root.active = true
@@ -243,15 +245,11 @@ PanelWindow {
         }
       }
       Keys.onReleased: function(event) {
-        // Hyprland delivers the Super release (pressed before this surface
-        // gained keyboard focus) with an unmapped keysym: Qt reports key 0,
-        // but the native scan code is intact (133 = Super_L, 134 = Super_R).
-        // Match by scan code so "release Super to activate" works even for the
-        // modifier that was held before the HUD appeared.
-        var scan = event.nativeScanCode
-        if (event.key === Qt.Key_Meta || scan === 133 || scan === 134) {
-          root.activateSelected(); event.accepted = true
-        }
+        // A modifier held before focus can arrive as key 0. Its physical
+        // position can also be Alt after a per-device Alt/Win swap. Check
+        // the keys captured by the actual shortcut instead of guessing from
+        // this event's symbol or scan code. Tab/Shift release must not accept.
+        if (!event.isAutoRepeat) root.checkSuperReleased()
       }
     }
   }

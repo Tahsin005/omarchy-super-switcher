@@ -13,6 +13,10 @@ auto-hide, drag-and-drop, window previews, or icon-management tools.
 - `Super + Shift + Tab`: previous application.
 - Hold Super and press Tab repeatedly to move through running applications.
 - Release Super to activate the selected application's most recently used window.
+- Per-device `altwin:swap_alt_win` mappings are supported, including a swapped
+  external PC keyboard alongside an unchanged internal Apple keyboard. The
+  shortcut captures the held Alt/Win physical keys and tracks those keys until
+  release; it does not assume that logical Super is physical Win.
 - A quick press and release also works if Super was released before the switcher
   acquired keyboard focus.
 - Arrow keys move the selection, Enter activates, and Escape cancels.
@@ -87,7 +91,8 @@ auto-hide, pinning, and custom-icon commands have been removed.
 
 ## Tests
 
-Run the application grouping, icon lookup, MRU ordering, and navigation tests:
+Run the application grouping, icon lookup, MRU ordering, navigation, and
+remapped-modifier tests (requires Node.js and a standalone Lua interpreter):
 
 ```bash
 ./tests/run.sh

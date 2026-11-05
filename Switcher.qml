@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import "SwitcherModel.js" as SwitcherModel
+import "SwitcherKeys.js" as SwitcherKeys
 
 Item {
   id: root
@@ -43,7 +44,7 @@ Item {
     return screens.length ? screens[0] : null
   }
 
-  function cycle(step) {
+  function cycle(step, heldKeys) {
     if (panel.active) {
       if (step > 0) panel.next(); else panel.prev()
       return
@@ -52,7 +53,7 @@ Item {
     var apps = root.runningApps()
     if (!apps.length) return
     var current = SwitcherModel.appForWindow(Hyprland.activeToplevel, root.appEntries())
-    panel.open(apps, SwitcherModel.initialIndex(apps, current ? current.id : "", step))
+    panel.open(apps, SwitcherModel.initialIndex(apps, current ? current.id : "", step), heldKeys)
   }
 
   function iconSource(app) {
@@ -81,8 +82,12 @@ Item {
 
   IpcHandler {
     target: "harryxu.super-switcher"
-    function altTabNext(): void { root.cycle(1) }
-    function altTabPrev(): void { root.cycle(-1) }
+    function altTabNext(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(1)]) }
+    function altTabPrev(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(-1)]) }
+    function cycleHeld(step: int, keycodes: string): void {
+      var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
+      if (heldKeys !== null) root.cycle(step, heldKeys)
+    }
     function altTabCancel(): void { panel.cancel() }
   }
 
@@ -159,7 +164,7 @@ Item {
 
   Process {
     id: registerBindings
-    command: ["hyprctl", "eval", "o.rebind(\"SUPER + TAB\", \"App switcher next\", \"omarchy-shell -q harryxu.super-switcher altTabNext\") o.rebind(\"SUPER + SHIFT + TAB\", \"App switcher prev\", \"omarchy-shell -q harryxu.super-switcher altTabPrev\")"]
+    command: ["hyprctl", "eval", SwitcherKeys.bindingCommand()]
   }
 
   // Shell startup or reload hooks can reapply config bindings after us.
