@@ -25,6 +25,15 @@ Item {
       root.recentWindows = SwitcherModel.touchWindow(root.recentWindows, window.address)
   }
 
+  function restoreRuntimeConfig() {
+    // Theme changes reload Hyprland without recreating this plugin. The
+    // compositor discards runtime bindings and layer rules during that reload.
+    if (!layerRule.running) layerRule.running = true
+    if (!registerBindings.running) registerBindings.running = true
+    bindRetry.attempts = 0
+    bindRetry.restart()
+  }
+
   function focusedScreen() {
     var monitor = Hyprland.focusedMonitor
     var screens = Quickshell.screens
@@ -80,6 +89,10 @@ Item {
   Connections {
     target: Hyprland
     function onActiveToplevelChanged() { root.rememberFocus() }
+    function onRawEvent(event) {
+      if (event && String(event.name) === "configreloaded")
+        Qt.callLater(root.restoreRuntimeConfig)
+    }
   }
 
   Connections {
@@ -149,7 +162,7 @@ Item {
     command: ["hyprctl", "eval", "o.rebind(\"SUPER + TAB\", \"App switcher next\", \"omarchy-shell -q harryxu.super-switcher altTabNext\") o.rebind(\"SUPER + SHIFT + TAB\", \"App switcher prev\", \"omarchy-shell -q harryxu.super-switcher altTabPrev\")"]
   }
 
-  // Shell startup can reapply config bindings after this plugin is loaded.
+  // Shell startup or reload hooks can reapply config bindings after us.
   Timer {
     id: bindRetry
     interval: 1500
@@ -164,8 +177,6 @@ Item {
 
   Component.onCompleted: {
     root.rememberFocus()
-    layerRule.running = true
-    registerBindings.running = true
-    bindRetry.start()
+    root.restoreRuntimeConfig()
   }
 }

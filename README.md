@@ -53,6 +53,8 @@ omarchy restart shell
 
 The runtime bindings reserve `Super + Tab` and `Super + Shift + Tab` without
 editing Hyprland configuration files or changing Alt-based shortcuts.
+Bindings are restored after Hyprland configuration reloads, including those
+triggered by Omarchy theme changes.
 
 ## IPC
 
@@ -86,6 +88,15 @@ python3 tests/switcher-live.test.py
 ```
 
 This switches applications temporarily and restores the original window focus.
+
+To verify shortcuts survive the compositor reload used by theme changes:
+
+```bash
+python3 tests/bindings-live.test.py
+```
+
+This waits for startup retries to finish, then checks two configuration reloads
+without changing the selected theme.
 
 ## Removal
 
