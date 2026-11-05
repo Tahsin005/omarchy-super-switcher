@@ -10,6 +10,7 @@ import subprocess
 import time
 
 EXPECTED = {64: 'App switcher next', 65: 'App switcher prev'}
+SUBMAP = 'harryxu-super-switcher'
 
 
 def bindings():
@@ -21,8 +22,11 @@ def bindings():
 def check_bindings():
     current = bindings()
     return all(len([binding for binding in current
-                    if binding['modmask'] == mask and binding.get('description') == description]) == 1
-               for mask, description in EXPECTED.items()) and len(current) == len(EXPECTED)
+                    if binding['modmask'] == mask
+                    and binding.get('description') == description
+                    and binding.get('submap', '') == submap]) == 1
+               for submap in ('', SUBMAP)
+               for mask, description in EXPECTED.items()) and len(current) == 2 * len(EXPECTED)
 
 
 def main():
@@ -38,7 +42,7 @@ def main():
         deadline = time.monotonic() + 4
         while time.monotonic() < deadline:
             if check_bindings():
-                print(f'PASS reload {attempt + 1}: forward/reverse shortcuts restored without duplicates', flush=True)
+                print(f'PASS reload {attempt + 1}: global/submap shortcuts restored without duplicates', flush=True)
                 break
             time.sleep(0.1)
         else:

@@ -21,6 +21,8 @@ auto-hide, drag-and-drop, window previews, or icon-management tools.
   acquired keyboard focus.
 - Arrow keys move the selection, Enter activates, and Escape cancels.
 - Hover selects an application; clicking activates it.
+- While visible, the switcher uses a dedicated Hyprland submap so holding Super
+  does not turn icon clicks into window drags. Closing returns to normal bindings.
 - The selected application's name appears below its icon, following keyboard
   and pointer selection. Long names are shortened to fit the panel.
 
@@ -37,7 +39,8 @@ display margins.
 ## Requirements
 
 Omarchy with Quickshell and Hyprland's Lua configuration API, including
-`hl.is_key_down`, `o.rebind`, and the `omarchy-shell` IPC command.
+`hl.is_key_down`, `hl.define_submap`, `hl.get_current_submap`, `o.rebind`, and the
+`omarchy-shell` IPC command.
 
 ## Installation
 
@@ -74,6 +77,10 @@ The runtime bindings reserve `Super + Tab` and `Super + Shift + Tab` without
 editing Hyprland configuration files or changing Alt-based shortcuts.
 Bindings are restored after Hyprland configuration reloads, including those
 triggered by Omarchy theme changes.
+An active switching session is canceled when Hyprland configuration reloads.
+Plugin unload and shell startup reset the switcher's input mode. If the shell
+crashes while the switcher is open, Escape (with or without Super held) restores
+normal shortcuts directly in Hyprland, without needing the shell to respond.
 
 ## IPC
 

@@ -7,7 +7,7 @@ import "SwitcherKeys.js" as SwitcherKeys
 
 // macOS-style application switcher: one icon per running program.
 //
-// Keyboard contract: Hyprland consumes the SUPER+TAB global binds (exec
+// Keyboard contract: Hyprland consumes the SUPER+TAB global/submap binds (exec
 // omarchy-shell ... altTabNext/altTabPrev), so the bound key never reaches
 // this window. While visible it grabs the keyboard exclusively and receives
 // the unbound keys: Super release activates, Escape cancels, Enter activates,
@@ -16,11 +16,13 @@ PanelWindow {
   id: root
 
   property bool active: false
+  // Map only after the compositor has isolated its mouse/keyboard bindings.
+  property bool inputReady: false
   property var apps: []
   property int selectedIndex: -1
   property int releaseGeneration: 0
   property var heldSuperKeys: []
-  readonly property bool keyboardReady: root.active && keyCatcher.activeFocus && keyCatcher.Window.active
+  readonly property bool keyboardReady: root.active && root.inputReady && keyCatcher.activeFocus && keyCatcher.Window.active
   readonly property real naturalWidth: root.apps.length ? root.apps.length * root.slotWidth + (root.apps.length - 1) * root.slotSpacing + 2 * root.sidePadding : 0
   readonly property real surfaceWidth: Math.min(root.naturalWidth, Math.max(0, root.width - 2 * root.screenMargin))
   property var iconSourceFor: function(app) { return "" }
@@ -112,7 +114,7 @@ PanelWindow {
     root.activated(id, name)
   }
 
-  visible: root.active
+  visible: root.active && root.inputReady
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
   WlrLayershell.layer: WlrLayer.Overlay
@@ -231,7 +233,7 @@ PanelWindow {
           root.cancel(); event.accepted = true; return
         }
         if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
-          // Hyprland's global bindings drive navigation; do not double-step.
+          // Hyprland's submap bindings drive navigation; do not double-step.
           event.accepted = true; return
         }
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {

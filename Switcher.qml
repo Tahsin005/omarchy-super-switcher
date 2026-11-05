@@ -12,6 +12,16 @@ Item {
   property string pendingFocusTarget: ""
   property string pendingCursorPosition: ""
 
+  function syncSubmap() {
+    // Serialize enter/leave commands. A rapid close/reopen must not let an
+    // older leave command reset the new session's input mode.
+    if (!panel.active) panel.inputReady = false
+    if (submapControl.running) return
+    submapControl.entering = panel.active
+    submapControl.command = ["hyprctl", "eval", SwitcherKeys.submapCommand(panel.active)]
+    submapControl.running = true
+  }
+
   function appEntries() {
     return DesktopEntries.applications.values || []
   }
@@ -95,8 +105,18 @@ Item {
     target: Hyprland
     function onActiveToplevelChanged() { root.rememberFocus() }
     function onRawEvent(event) {
-      if (event && String(event.name) === "configreloaded")
+      if (!event) return
+      if (String(event.name) === "configreloaded") {
+        // A reload removes the mode's bindings. End the current session before
+        // restoring them, rather than leave a visible panel with drag enabled.
+        panel.cancel()
         Qt.callLater(root.restoreRuntimeConfig)
+      } else if (String(event.name) === "submap"
+                 && String(event.data) !== SwitcherKeys.submapName
+                 && panel.active && panel.inputReady) {
+        // Includes the compositor-side Escape fallback and external mode changes.
+        panel.cancel()
+      }
     }
   }
 
@@ -117,6 +137,21 @@ Item {
     screen: root.focusedScreen()
     iconSourceFor: function(app) { return root.iconSource(app) }
     onActivated: function(appId) { root.activateApp(appId) }
+    onActiveChanged: root.syncSubmap()
+  }
+
+  Process {
+    id: submapControl
+    property bool entering: false
+    onExited: function(exitCode, exitStatus) {
+      if (exitCode !== 0 || exitStatus !== 0) {
+        console.warn("App switcher: could not update Hyprland submap")
+        if (panel.active) panel.cancel()
+        return
+      }
+      if (submapControl.entering !== panel.active) root.syncSubmap()
+      else if (panel.active) panel.inputReady = true
+    }
   }
 
   // Preserve the pointer position when focusing another app or workspace.
@@ -182,6 +217,9 @@ Item {
 
   Component.onCompleted: {
     root.rememberFocus()
+    root.syncSubmap()
     root.restoreRuntimeConfig()
   }
+
+  Component.onDestruction: Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.submapCommand(false)])
 }

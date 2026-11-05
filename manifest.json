@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "harryxu.super-switcher",
   "name": "macOS App Switcher",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "author": "ifubaraboye",
   "description": "A macOS-style Super+Tab application switcher with recent-app ordering and quick-release activation.",
   "kinds": [

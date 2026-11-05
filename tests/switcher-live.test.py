@@ -57,6 +57,7 @@ def switch(method):
             # Activation also restores the cursor asynchronously after 80ms.
             # Wait for settled focus rather than sampling that transition.
             if time.monotonic() - stable_since >= 0.15:
+                assert run('hyprctl', 'submap') == 'default', 'Switcher left its submap active'
                 return focused
         time.sleep(0.025)
     raise AssertionError(f'{method}: switcher_stuck={switcher_visible()}, '
