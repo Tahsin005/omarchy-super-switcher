@@ -163,7 +163,9 @@ PanelWindow {
           width: root.slotWidth
           height: root.slotWidth
           radius: root.selectionRadius
-          color: Util.alpha(Color.foreground, 0.10)
+          color: Util.alpha(Color.accent, 0.28)
+          border.color: Util.alpha(Color.accent, 0.90)
+          border.width: 2
           visible: root.selectedIndex === index
         }
 
