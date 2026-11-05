@@ -29,10 +29,13 @@ PanelWindow {
   property int slotWidth: 96
   property int slotSpacing: 12
   property int sidePadding: 24
-  property int surfaceHeight: 144
+  property int surfaceHeight: 160
   property int surfaceRadius: 36
   property int selectionRadius: 20
   property int screenMargin: 32
+  property int topPadding: 16
+  property int labelHeight: 20
+  property int labelMargin: 12
 
   signal activated(string appId, string appName)
 
@@ -130,7 +133,8 @@ PanelWindow {
 
     ListView {
       id: appRow
-      anchors.centerIn: parent
+      anchors.horizontalCenter: parent.horizontalCenter
+      y: root.topPadding
       width: Math.max(0, parent.width - 2 * root.sidePadding)
       height: root.iconSize
       orientation: ListView.Horizontal
@@ -189,6 +193,29 @@ PanelWindow {
           }
         }
       }
+    }
+
+    Text {
+      id: selectedAppLabel
+      readonly property var app: root.selectedIndex >= 0 && root.selectedIndex < root.apps.length ? root.apps[root.selectedIndex] : null
+      readonly property real iconCenter: appRow.x + (appRow.currentItem ? appRow.currentItem.x + root.slotWidth / 2 - appRow.contentX : appRow.width / 2)
+      text: app ? String(app.name || app.id || "") : ""
+      textFormat: Text.PlainText
+      visible: !!app && !!appRow.currentItem
+      // Keep the name centered under its icon, including while the row scrolls.
+      // At either edge, shorten long names rather than spilling out of the panel.
+      width: Math.max(0, Math.min(200, 2 * Math.min(iconCenter - root.labelMargin, switcherSurface.width - root.labelMargin - iconCenter)))
+      height: root.labelHeight
+      x: iconCenter - width / 2
+      y: appRow.y + appRow.height + 3
+      horizontalAlignment: Text.AlignHCenter
+      verticalAlignment: Text.AlignVCenter
+      elide: Text.ElideRight
+      maximumLineCount: 1
+      color: Color.foreground
+      font.family: Style.fontFamily
+      font.pixelSize: 13
+      font.weight: Font.Medium
     }
 
     Item {

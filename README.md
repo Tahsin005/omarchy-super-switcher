@@ -17,6 +17,8 @@ auto-hide, drag-and-drop, window previews, or icon-management tools.
   acquired keyboard focus.
 - Arrow keys move the selection, Enter activates, and Escape cancels.
 - Hover selects an application; clicking activates it.
+- The selected application's name appears below its icon, following keyboard
+  and pointer selection. Long names are shortened to fit the panel.
 
 The switcher uses native desktop-entry icons with a bundled fallback for unknown
 applications. It does not write dock settings or download icons.
@@ -24,8 +26,9 @@ Visible icon artwork is centered and fitted to an 84px maximum dimension,
 matching the smaller native icons. Transparent padding and faint shadows do not
 determine the size; source geometry is measured once and cached for later switches.
 The compact layout uses 96px selection tiles with 12px between tiles, 24px
-surface padding, and a 144px panel height. Longer lists scroll horizontally to
-keep the selected application visible within the display margins.
+horizontal padding, and a 160px panel height including a fixed name row. Longer
+lists scroll horizontally to keep the selected application visible within the
+display margins.
 
 ## Requirements
 
