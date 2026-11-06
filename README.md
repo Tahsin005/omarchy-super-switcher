@@ -39,6 +39,12 @@ Arrow keys move the selection, Enter activates it, and Escape cancels. Moving
 the pointer over an item selects it; clicking activates it. Long names are
 shortened to fit. The app switcher shows the selected app's name below its icon.
 
+While the app switcher is open, hold `A` to show only applications with windows
+on the current workspace. Release `A` to restore the full list. You can also
+hold `A` when pressing `Super + Tab` or `Super + Shift + Tab`. In this mode,
+activation stays within the current workspace, even if the selected app has a
+more recently used window elsewhere.
+
 Per-device `altwin:swap_alt_win` mappings work with a swapped external PC
 keyboard and an unchanged internal Apple keyboard. The switcher captures the
 held Alt/Win physical keys when the shortcut fires and tracks them until

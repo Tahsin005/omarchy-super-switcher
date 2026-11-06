@@ -25,6 +25,7 @@ PanelWindow {
   property var apps: []
   property int selectedIndex: -1
   property int releaseGeneration: 0
+  property int modifierQueryRevision: 0
   property var heldModifierKeys: []
   readonly property bool keyboardReady: root.active && root.inputReady && keyCatcher.activeFocus && keyCatcher.Window.active
   readonly property real naturalWidth: root.apps.length ? root.apps.length * root.slotWidth + (root.apps.length - 1) * root.slotSpacing + 2 * root.sidePadding : 0
@@ -50,6 +51,7 @@ PanelWindow {
 
   signal activated(string appId, string appName)
   signal workspaceActivated(string workspaceId)
+  signal appScopeChanged(bool currentWorkspaceOnly)
 
   function iconSource(app) {
     var src = root.iconSourceFor(app)
@@ -67,7 +69,9 @@ PanelWindow {
     // event will reach us in that case. Once keyboard focus is established,
     // query the compositor's key state to cover that gap without a delay.
     // Later releases are handled by Keys.onReleased as usual.
-    var command = SwitcherKeys.releaseCommand(root.heldModifierKeys, root.releaseGeneration)
+    root.modifierQueryRevision++
+    var command = SwitcherKeys.releaseCommand(root.heldModifierKeys, root.releaseGeneration,
+      !root.workspaceMode, root.modifierQueryRevision)
     Quickshell.execDetached(["hyprctl", "eval", command])
   }
 
@@ -76,6 +80,11 @@ PanelWindow {
     function acceptRelease(generation: int): void {
       // Ignore a reply from a session that was canceled or already committed.
       if (root.active && generation === root.releaseGeneration) root.activateSelected()
+    }
+    function acceptAppScope(generation: int, revision: int, currentWorkspaceOnly: bool): void {
+      if (root.active && !root.workspaceMode && generation === root.releaseGeneration
+          && revision === root.modifierQueryRevision)
+        root.appScopeChanged(currentWorkspaceOnly)
     }
   }
 
@@ -139,7 +148,9 @@ PanelWindow {
 
   Ui.PointerMoveGate {
     id: pointerGate
-    referenceItem: switcherSurface
+    // Filtering changes the centered surface's size and position. Compare
+    // pointer motion in window coordinates so that resize is not a hover move.
+    referenceItem: switcherSurface.parent
   }
 
   // Centered switcher surface.
@@ -290,6 +301,13 @@ PanelWindow {
       focus: true
       Keys.priority: Keys.BeforeItem
       Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_A && !root.workspaceMode) {
+          if (!event.isAutoRepeat) {
+            root.modifierQueryRevision++
+            root.appScopeChanged(true)
+          }
+          event.accepted = true; return
+        }
         if (event.key === Qt.Key_Escape) {
           root.cancel(); event.accepted = true; return
         }

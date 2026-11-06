@@ -11,13 +11,14 @@ const plain = value => JSON.parse(JSON.stringify(value))
 
 function lua(command, down = [], invokeBinding) {
   const prelude = `
-local down = {${down.map(code => `[${code}] = true`).join(",")}}
+local down = {${down.map(code => `[${JSON.stringify(code)}] = true`).join(",")}}
 local bindings = {}
 local definingSubmap = ""
 local currentSubmap = ""
 hl = {
   is_key_down = function(code)
-    assert(type(code) == "number", "keysym lookup ignores per-device mappings")
+    assert(type(code) == "number" or code == "a" or code == "A",
+      "Modifier keys must use physical codes to preserve per-device mappings")
     return down[code] == true
   end,
   exec_cmd = function(command) print(command) end,
@@ -82,6 +83,43 @@ test("both held Super positions must be released", () => {
   assert.equal(lua(keys.cycleCommand(1), [64, 134]),
     "omarchy-shell -q harryxu.super-switcher cycleHeld 1 64,134")
   assert.equal(lua(keys.releaseCommand([64, 134], 11), [134]), "")
+})
+
+test("holding A scopes application shortcuts in both directions and submaps", () => {
+  for (const a of ["a", "A"]) {
+    for (const modifier of [64, 108, 133, 134]) {
+      for (const [chord, step] of [["SUPER + TAB", 1], ["SUPER + SHIFT + TAB", -1]]) {
+        for (const submap of ["", keys.submapName]) {
+          assert.equal(lua(`${keys.bindingCommand()} invoke("${chord}", "${submap}")`, [modifier, a, 23]),
+            `omarchy-shell -q harryxu.super-switcher localCycleHeld ${step} ${modifier}`)
+        }
+      }
+    }
+  }
+})
+
+test("A does not change Alt+Tab workspace switching", () => {
+  assert.equal(lua(keys.cycleCommand(1, "workspaces"), [64, "a"]),
+    "omarchy-shell -q harryxu.super-switcher workspaceCycleHeld 1 64")
+})
+
+test("releasing A restores the app scope only while Super remains held", () => {
+  const command = keys.releaseCommand([133], 17, true, 3)
+  assert.equal(lua(command, [133, "a"]),
+    "omarchy-shell -q harryxu.super-switcher.switcher acceptAppScope 17 3 true")
+  assert.equal(lua(command, [133]),
+    "omarchy-shell -q harryxu.super-switcher.switcher acceptAppScope 17 3 false")
+  for (const down of [[], ["a"]]) {
+    assert.equal(lua(command, down),
+      "omarchy-shell -q harryxu.super-switcher.switcher acceptRelease 17")
+  }
+})
+
+test("a local quick tap keeps its captured scope when A and Super were released before focus", () => {
+  assert.equal(lua(keys.cycleCommand(1), ["a", 133]),
+    "omarchy-shell -q harryxu.super-switcher localCycleHeld 1 133")
+  assert.equal(lua(keys.releaseCommand([133], 18, true, 4)),
+    "omarchy-shell -q harryxu.super-switcher.switcher acceptRelease 18")
 })
 
 test("release before IPC/focus still accepts, and untrusted code lists are rejected", () => {

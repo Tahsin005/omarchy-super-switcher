@@ -57,11 +57,18 @@ function touchWindow(history, address) {
     return [address].concat(history.filter(function(value) { return value !== address }))
 }
 
-function buildApps(windows, entries, history) {
+function windowInWorkspace(window, workspaceId) {
+    if (!window) return false
+    var workspace = window.workspace || (window.lastIpcObject || {}).workspace
+    return !!workspace && Number(workspace.id) === Number(workspaceId)
+}
+
+function buildApps(windows, entries, history, workspaceId) {
     var ordered = []
     for (var i = 0; i < windows.length; i++) {
         var window = windows[i]
         if (!window || !window.address || (window.lastIpcObject || {}).mapped === false) continue
+        if (workspaceId !== undefined && workspaceId !== null && !windowInWorkspace(window, workspaceId)) continue
         var app = appForWindow(window, entries)
         if (app) ordered.push({ app: app, address: window.address })
     }
@@ -106,6 +113,7 @@ if (typeof module !== "undefined" && module.exports) {
         iconName: iconName,
         initialIndex: initialIndex,
         normalizeId: normalizeId,
-        touchWindow: touchWindow
+        touchWindow: touchWindow,
+        windowInWorkspace: windowInWorkspace
     }
 }

@@ -8,8 +8,10 @@ function cycleCommand(step, mode) {
   return "local held = {} "
     + "for _, code in ipairs({64, 108, 133, 134}) do "
     + "if hl.is_key_down(code) then table.insert(held, code) end end "
-    + "hl.exec_cmd(\"omarchy-shell -q harryxu.super-switcher "
-    + (mode === "workspaces" ? "workspaceCycleHeld " : "cycleHeld ")
+    + (mode === "workspaces"
+      ? "local method = \"workspaceCycleHeld\" "
+      : "local method = (hl.is_key_down(\"a\") or hl.is_key_down(\"A\")) and \"localCycleHeld\" or \"cycleHeld\" ")
+    + "hl.exec_cmd(\"omarchy-shell -q harryxu.super-switcher \" .. method .. \" "
     + (step < 0 ? "-1" : "1") + " \" .. (#held > 0 and table.concat(held, \",\") or \"none\"))"
 }
 
@@ -63,11 +65,14 @@ function parseHeldKeys(value) {
   return codes
 }
 
-function releaseCommand(codes, generation) {
+function releaseCommand(codes, generation, trackAppScope, revision) {
   var checks = codes.map(function(code) { return "hl.is_key_down(" + code + ")" })
   return "if not (" + (checks.length ? checks.join(" or ") : "false") + ") then "
     + "hl.exec_cmd(\"omarchy-shell -q harryxu.super-switcher.switcher acceptRelease "
-    + generation + "\") end"
+    + generation + "\") "
+    + (trackAppScope ? "else hl.exec_cmd(\"omarchy-shell -q harryxu.super-switcher.switcher acceptAppScope "
+      + generation + " " + revision + " \" .. tostring(hl.is_key_down(\"a\") or hl.is_key_down(\"A\"))) " : "")
+    + "end"
 }
 
 if (typeof module !== "undefined") module.exports = {

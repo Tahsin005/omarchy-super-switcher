@@ -33,6 +33,36 @@ test("orders applications and their windows by recent focus", () => {
   assert.deepEqual(apps[1].addresses, ["0x3", "0x1"])
 })
 
+test("workspace filtering runs before app grouping and MRU selection", () => {
+  const windows = [
+    window("0x1", "code", { workspace: { id: 1 } }),
+    window("0x2", "code", { workspace: { id: 2 } }),
+    window("0x3", "Nautilus", { workspace: { id: 1 } }),
+    window("0x4", "browser", { workspace: { id: 2 } }),
+    window("0x5", "code", { workspace: { id: 1 } }),
+  ]
+  const history = ["0x2", "0x4", "0x5", "0x3", "0x1"]
+  const local = plain(model.buildApps(windows, entries, history, 1))
+  assert.deepEqual(local.map(app => app.id), ["code", "org.gnome.Nautilus"])
+  assert.deepEqual(local[0].addresses, ["0x5", "0x1"])
+  const global = plain(model.buildApps(windows, entries, history))
+  assert.deepEqual(global.map(app => app.id), ["code", "browser", "org.gnome.Nautilus"])
+  assert.deepEqual(global[0].addresses, ["0x2", "0x5", "0x1"])
+  assert.deepEqual(plain(model.buildApps(windows, entries, history, null)), global)
+})
+
+test("workspace membership uses the live object before stale IPC data and supports named workspaces", () => {
+  const moved = window("0x1", "code", { workspace: { id: 1 } })
+  moved.workspace = { id: -1337 }
+  const unknown = window("0x2", "browser")
+  assert.equal(model.windowInWorkspace(moved, 1), false)
+  assert.equal(model.windowInWorkspace(moved, -1337), true)
+  assert.deepEqual(plain(model.buildApps([moved, unknown], entries, [], -1337)).map(app => app.id), ["code"])
+  assert.deepEqual(plain(model.buildApps([moved, unknown], entries, [], 1)), [])
+  assert.deepEqual(plain(model.buildApps([moved, unknown], entries, [], 0)), [])
+  assert.equal(model.windowInWorkspace(null, 1), false)
+})
+
 test("normalizes X11 classes, StartupWMClass, and browser web apps", () => {
   assert.equal(model.appForWindow({ lastIpcObject: { class: "Nautilus" } }, entries).id, "org.gnome.Nautilus")
   assert.equal(model.appForWindow(window("0x1", "chrome-web.whatsapp.com__-Default"), entries).id, "WhatsApp")
