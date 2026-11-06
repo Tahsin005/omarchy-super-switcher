@@ -1,4 +1,4 @@
-# macOS App Switcher
+# Omarchy Super Switcher
 
 A macOS-style app and workspace switcher for Omarchy and Hyprland. Press
 `Super + Tab` to choose an app, or `Alt/Option + Tab` to preview workspaces.
