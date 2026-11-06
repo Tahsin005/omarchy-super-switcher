@@ -1,57 +1,81 @@
 # macOS App Switcher
 
-A macOS-style application switcher for Omarchy and Hyprland. It shows one icon
-per running application, ordered by recent use, on the currently focused output.
-Alt/Option + Tab opens a workspace switcher with window previews and names.
+A macOS-style app and workspace switcher for Omarchy and Hyprland. Press
+`Super + Tab` to choose an app, or `Alt/Option + Tab` to preview workspaces.
+Release the modifier key to switch. Both panels open on the focused display.
 
-The plugin ID is `harryxu.super-switcher`.
-The plugin contains application and workspace switching, without a dock bar,
+The plugin ID is `harryxu.super-switcher`. It handles switching without a dock,
 pinned apps, auto-hide, drag-and-drop, or icon-management tools.
+
+## Screenshots
+
+### Application switcher
+
+One icon per running app, ordered by recent use.
+
+![Application switcher with native app icons and the selected app's name](assets/screenshots/app-switcher.png)
+
+### Workspace switcher
+
+Window previews and workspace names, with a theme-colored border around the
+selection.
+
+![Workspace switcher showing Browse, Code, and Files in a demo session](assets/screenshots/workspace-switcher.png)
 
 ## Keyboard and mouse
 
-- `Super + Tab`: next application.
-- `Super + Shift + Tab`: previous application.
-- `Alt/Option + Tab`: next workspace.
-- `Alt/Option + Shift + Tab`: previous workspace.
-- Hold Alt/Option and press Tab repeatedly to select a workspace; release
-  Alt/Option to switch. Escape cancels without changing workspace. Arrow keys,
-  Enter, hover, and clicking work in both modes.
-- Workspace mode lists all existing regular workspaces across monitors,
-  including empty and named workspaces. Numbered workspaces appear in numerical
-  order, followed by named workspaces in alphabetical order. Special scratchpad
-  workspaces are excluded.
-- Each workspace shows its name and a scaled preview of its wallpaper and
-  window layout, enclosed by a rounded border. The selected preview has a
-  stronger theme-colored outline. Window contents use Hyprland's toplevel capture protocol;
-  clients without capture support show their application icon in the same
-  position. Video wallpapers use the theme background color. Long lists scroll
-  horizontally to keep the selected workspace visible.
-- Hold Super and press Tab repeatedly to move through running applications.
-- Release Super to activate the selected application's most recently used window.
-- Per-device `altwin:swap_alt_win` mappings are supported, including a swapped
-  external PC keyboard alongside an unchanged internal Apple keyboard. The
-  shortcut captures the held Alt/Win physical keys and tracks those keys until
-  release; it does not assume that logical Super is physical Win.
-- A quick press and release also works if Super was released before the switcher
-  acquired keyboard focus.
-- Arrow keys move the selection, Enter activates, and Escape cancels.
-- Hover selects an application; clicking activates it.
-- While visible, the switcher uses a dedicated Hyprland submap so holding Super
-  does not turn icon clicks into window drags. Closing returns to normal bindings.
-- The selected application's name appears below its icon, following keyboard
-  and pointer selection. Long names are shortened to fit the panel.
+| Shortcut | Action |
+| --- | --- |
+| `Super + Tab` | Next application |
+| `Super + Shift + Tab` | Previous application |
+| `Alt/Option + Tab` | Next workspace |
+| `Alt/Option + Shift + Tab` | Previous workspace |
 
-The switcher uses native desktop-entry icons with a bundled fallback for unknown
-applications. It does not write dock settings or download icons.
-Visible icon artwork is centered and fitted to an 84px maximum dimension,
-matching the smaller native icons. Transparent padding and faint shadows do not
-determine the size; source geometry is measured once and cached for later switches.
-The compact layout uses 96px selection tiles with 12px between tiles, 24px
-horizontal padding, and equal 32px vertical padding around the icons, for a
-160px panel height. The selected application's name is centered in the bottom
-padding. Longer lists scroll horizontally to keep the selected application
-visible within the display margins.
+Hold Super or Alt/Option and press Tab repeatedly to move through the list.
+Release the modifier to activate the selection. Quick taps work even if you
+release the key before the panel gets keyboard focus.
+
+Arrow keys move the selection, Enter activates it, and Escape cancels. Moving
+the pointer over an item selects it; clicking activates it. Long names are
+shortened to fit. The app switcher shows the selected app's name below its icon.
+
+Per-device `altwin:swap_alt_win` mappings work with a swapped external PC
+keyboard and an unchanged internal Apple keyboard. The switcher captures the
+held Alt/Win physical keys when the shortcut fires and tracks them until
+release, so logical Super does not have to be physical Win.
+
+## Applications
+
+Each running application appears once. Apps are ordered by recent use, and
+selecting one focuses its most recently used window.
+
+Icons come from native desktop entries, with a bundled fallback for unknown
+apps. The switcher does not download icons or write dock settings. Visible
+artwork is centered and fitted to an 84px maximum dimension, matching smaller
+native icons. Transparent padding and faint shadows do not affect the size;
+source geometry is measured once and cached.
+
+The panel is 160px high, with 96px selection tiles, 12px gaps, 24px horizontal
+padding, and 32px above and below the icons. The app name sits in the lower
+padding. Long lists scroll horizontally to keep the selection within the
+display margins.
+
+## Workspaces
+
+The workspace switcher lists all existing regular workspaces across monitors,
+including empty and named workspaces. Numbered workspaces come first in
+numerical order, followed by named workspaces in alphabetical order. Special
+scratchpad workspaces are excluded.
+
+Each preview shows the wallpaper and window layout inside a rounded border.
+The selected preview has a stronger outline in the theme's accent color.
+Window contents use Hyprland's toplevel capture protocol. If a client cannot
+be captured, its application icon appears in the same position. Video
+wallpapers use the theme background color. Long lists scroll horizontally to
+keep the selection visible.
+
+Hold Alt/Option while choosing a workspace. The desktop changes when you
+release it; Escape cancels the selection.
 
 ## Requirements
 
@@ -70,8 +94,8 @@ omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enabl
 
 ## Development installation
 
-For development, clone the repository and link the checkout into the user plugin
-directory using its manifest ID, `harryxu.super-switcher`:
+Clone the repository and link it into the user plugin directory under its
+manifest ID, `harryxu.super-switcher`:
 
 ```bash
 git clone https://github.com/harryxu/omarchy-super-switcher.git
@@ -82,28 +106,29 @@ omarchy-shell shell rescanPlugins
 omarchy plugin enable harryxu.super-switcher
 ```
 
-If the destination is already occupied, remove the previous plugin installation
-before creating the link. Source changes are used directly from the checkout.
-After editing QML, restart the shell to clear its component cache:
+If the destination already exists, remove the previous plugin installation
+before creating the link. The plugin uses source files directly from the
+checkout. After editing QML, restart the shell to clear its component cache:
 
 ```bash
 omarchy restart shell
 ```
 
-The runtime bindings reserve `Super + Tab`, `Super + Shift + Tab`, `Alt + Tab`,
-and `Alt + Shift + Tab` without editing Hyprland configuration files.
+The plugin registers `Super + Tab`, `Super + Shift + Tab`, `Alt + Tab`, and
+`Alt + Shift + Tab` at runtime without editing Hyprland configuration files.
 The Alt shortcuts replace Omarchy's immediate next/previous workspace actions
-with preview selection and release-to-activate behavior.
-Bindings are restored after Hyprland configuration reloads, including those
-triggered by Omarchy theme changes.
-An active switching session is canceled when Hyprland configuration reloads.
-Plugin unload and shell startup reset the switcher's input mode. If the shell
-crashes while the switcher is open, Escape (with or without Super held) restores
-normal shortcuts directly in Hyprland, without needing the shell to respond.
+with preview selection and activation on release.
+
+Bindings are restored after Hyprland configuration reloads, including theme
+changes. A reload cancels any open switching session. Plugin unload and shell
+startup also reset the switcher's input mode.
+
+While a panel is open, a dedicated Hyprland submap prevents held Super from
+turning clicks into window drags. Closing the panel restores normal bindings.
+If the shell crashes with a panel open, Escape restores normal shortcuts
+directly in Hyprland, with or without Super held.
 
 ## IPC
-
-The existing command names remain available:
 
 ```bash
 omarchy-shell harryxu.super-switcher altTabNext
@@ -113,15 +138,14 @@ omarchy-shell harryxu.super-switcher workspaceNext
 omarchy-shell harryxu.super-switcher workspacePrev
 ```
 
-A next/previous call made with its modifier already released completes the
-switch automatically after the panel acquires focus. `altTabCancel` cancels
-either mode. Dock visibility, placement,
-auto-hide, pinning, and custom-icon commands have been removed.
+A next/previous call made after its modifier has been released completes the
+switch once the panel gets focus. `altTabCancel` cancels either mode.
 
 ## Tests
 
-Run the application grouping, icon lookup, MRU ordering, navigation, and
-remapped-modifier tests (requires Node.js and a standalone Lua interpreter):
+Run the logic tests, QML syntax check, and plugin validation. The logic tests
+cover application grouping, icon lookup, MRU ordering, navigation, and remapped
+modifiers, and require Node.js and a standalone Lua interpreter.
 
 ```bash
 ./tests/run.sh
@@ -129,34 +153,35 @@ remapped-modifier tests (requires Node.js and a standalone Lua interpreter):
 omarchy plugin validate .
 ```
 
-Run the Qt rendering regressions at 100%, 160%, and 200% scale (requires Qt Test):
+Run the Qt rendering tests at 100%, 160%, and 200% scale (requires Qt Test):
 
 ```bash
 ./tests/render.sh
 ```
 
-These verify the visible artwork size and centering for opaque and
-asymmetrically padded icons, including reopening from the geometry cache.
+These check visible artwork size and centering for opaque and asymmetrically
+padded icons, including reopening from the geometry cache.
 
-On an unlocked Hyprland desktop with this plugin enabled and at least two
-applications running, test quick-release switching through the live IPC path:
+With the plugin enabled on an unlocked Hyprland desktop, run the live
+quick-release tests:
 
 ```bash
 python3 tests/switcher-live.test.py
 python3 tests/workspace-live.test.py
 ```
 
-This switches applications temporarily and restores the original window focus.
-The workspace test checks forward/reverse and consecutive quick releases and
-restores the original workspace and focus. It requires two existing workspaces.
+The application test needs at least two running apps and restores the original
+window focus afterward. The workspace test needs two existing workspaces. It
+checks forward, reverse, and consecutive quick releases, then restores the
+original workspace and focus.
 
-To verify shortcuts survive the compositor reload used by theme changes:
+To check that shortcuts survive the compositor reload used by theme changes:
 
 ```bash
 python3 tests/bindings-live.test.py
 ```
 
-This waits for startup retries to finish, then checks two configuration reloads
+This waits for startup retries to finish and checks two configuration reloads
 without changing the selected theme.
 
 ## Removal
@@ -165,4 +190,5 @@ without changing the selected theme.
 omarchy plugin remove harryxu.super-switcher --yes
 ```
 
-For a development installation, removal unlinks the plugin and keeps the checkout.
+For a development installation, removal unlinks the plugin and keeps the
+checkout.
