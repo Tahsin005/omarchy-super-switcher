@@ -33,13 +33,13 @@ PanelWindow {
   property int slotWidth: 96
   property int slotSpacing: 12
   property int sidePadding: 24
-  property int surfaceHeight: 160
+  readonly property int surfaceHeight: root.iconSize + 2 * root.verticalPadding
   property int surfaceRadius: 36
   property int selectionRadius: 20
   property int screenMargin: 32
-  property int topPadding: 16
+  // Equal space above and below the icons; the name lives in the lower inset.
+  property int verticalPadding: 32
   property int labelHeight: 24
-  property int labelSpacing: 8
   property int labelMargin: 12
 
   signal activated(string appId, string appName)
@@ -139,7 +139,7 @@ PanelWindow {
     ListView {
       id: appRow
       anchors.horizontalCenter: parent.horizontalCenter
-      y: root.topPadding
+      y: root.verticalPadding
       width: Math.max(0, parent.width - 2 * root.sidePadding)
       height: root.iconSize
       orientation: ListView.Horizontal
@@ -173,7 +173,7 @@ PanelWindow {
           height: root.slotWidth
           radius: root.selectionRadius
           color: Commons.Util.alpha(Commons.Color.accent, 0.28)
-          border.color: Commons.Util.alpha(Commons.Color.accent, 0.90)
+          border.color: Commons.Util.alpha(Commons.Color.accent, 0.40)
           border.width: 2
           visible: root.selectedIndex === index
         }
@@ -212,7 +212,7 @@ PanelWindow {
       width: Math.max(0, Math.min(200, 2 * Math.min(iconCenter - root.labelMargin, switcherSurface.width - root.labelMargin - iconCenter)))
       height: root.labelHeight
       x: iconCenter - width / 2
-      y: appRow.y + appRow.height + root.labelSpacing
+      y: appRow.y + appRow.height + (root.verticalPadding - height) / 2
       horizontalAlignment: Text.AlignHCenter
       verticalAlignment: Text.AlignVCenter
       elide: Text.ElideRight

@@ -32,9 +32,10 @@ Visible icon artwork is centered and fitted to an 84px maximum dimension,
 matching the smaller native icons. Transparent padding and faint shadows do not
 determine the size; source geometry is measured once and cached for later switches.
 The compact layout uses 96px selection tiles with 12px between tiles, 24px
-horizontal padding, and a 160px panel height including a fixed name row. Longer
-lists scroll horizontally to keep the selected application visible within the
-display margins.
+horizontal padding, and equal 32px vertical padding around the icons, for a
+160px panel height. The selected application's name is centered in the bottom
+padding. Longer lists scroll horizontally to keep the selected application
+visible within the display margins.
 
 ## Requirements
 
