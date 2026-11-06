@@ -52,6 +52,7 @@ PanelWindow {
   signal activated(string appId, string appName)
   signal workspaceActivated(string workspaceId)
   signal appScopeChanged(bool currentWorkspaceOnly)
+  signal quitRequested(string appId)
 
   function iconSource(app) {
     var src = root.iconSourceFor(app)
@@ -135,6 +136,11 @@ PanelWindow {
     root.cancel()
     if (workspace) root.workspaceActivated(id)
     else root.activated(id, name)
+  }
+
+  function quitSelected() {
+    if (!root.active || root.workspaceMode || root.selectedIndex < 0 || root.selectedIndex >= root.apps.length) return
+    root.quitRequested(root.apps[root.selectedIndex].id)
   }
 
   visible: root.active && root.inputReady
@@ -301,6 +307,11 @@ PanelWindow {
       focus: true
       Keys.priority: Keys.BeforeItem
       Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Q) {
+          // Holding Q must not quit successive apps as the list shrinks.
+          if (!event.isAutoRepeat) root.quitSelected()
+          event.accepted = true; return
+        }
         if (event.key === Qt.Key_A && !root.workspaceMode) {
           if (!event.isAutoRepeat) {
             root.modifierQueryRevision++

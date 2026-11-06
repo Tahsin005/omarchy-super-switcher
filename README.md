@@ -45,6 +45,13 @@ hold `A` when pressing `Super + Tab` or `Super + Shift + Tab`. In this mode,
 activation stays within the current workspace, even if the selected app has a
 more recently used window elsewhere.
 
+Press `Q` in the app switcher to request a normal close of all windows of the
+selected application, across workspaces. The next item is selected when the
+app closes. Holding `Q` does not quit additional apps. If a save confirmation
+appears, the switcher closes and focuses the dialog. Apps configured to stay
+in the background after their windows close may continue running. `Q` does
+nothing in the workspace switcher.
+
 Per-device `altwin:swap_alt_win` mappings work with a swapped external PC
 keyboard and an unchanged internal Apple keyboard. The switcher captures the
 held Alt/Win physical keys when the shortcut fires and tracks them until

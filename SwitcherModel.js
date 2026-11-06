@@ -90,6 +90,44 @@ function buildApps(windows, entries, history, workspaceId) {
     return apps
 }
 
+function quitPlan(windows, entries, appId, originalAddresses) {
+    var id = normalizeId(appId).toLowerCase()
+    var matches = []
+    if (!id) return { windows: [], dialog: null }
+    for (var i = 0; i < windows.length; i++) {
+        var window = windows[i]
+        if (!window || !window.address || (window.lastIpcObject || {}).mapped === false) continue
+        var app = appForWindow(window, entries)
+        if (app && app.id.toLowerCase() === id) matches.push(window)
+    }
+    // A modal may have a different app ID (for example, a file chooser).
+    // Its exported parent still identifies the app that needs a response.
+    for (var j = 0; j < windows.length; j++) {
+        var candidate = windows[j]
+        var parent = candidate && candidate.wayland ? candidate.wayland.parent : null
+        if (!parent || (candidate.lastIpcObject || {}).mapped === false) continue
+        if (matches.indexOf(candidate) !== -1) return { windows: [], dialog: candidate }
+        for (var k = 0; k < matches.length; k++) {
+            if (matches[k].wayland === parent) return { windows: [], dialog: candidate }
+        }
+    }
+    // Some clients do not export a modal's parent. A new window from the app
+    // immediately after a quit request also needs its keyboard input back.
+    if (originalAddresses) {
+        for (var n = 0; n < matches.length; n++) {
+            if (originalAddresses.indexOf(matches[n].address) === -1)
+                return { windows: [], dialog: matches[n] }
+        }
+    }
+    return { windows: matches, dialog: null }
+}
+
+function selectionIndex(apps, selectedId, previousIndex) {
+    if (!apps.length) return -1
+    for (var i = 0; i < apps.length; i++) if (apps[i].id === selectedId) return i
+    return Math.max(0, Math.min(previousIndex, apps.length - 1))
+}
+
 function initialIndex(apps, currentId, step) {
     if (!apps.length) return -1
     for (var i = 0; i < apps.length; i++) {
@@ -113,6 +151,8 @@ if (typeof module !== "undefined" && module.exports) {
         iconName: iconName,
         initialIndex: initialIndex,
         normalizeId: normalizeId,
+        quitPlan: quitPlan,
+        selectionIndex: selectionIndex,
         touchWindow: touchWindow,
         windowInWorkspace: windowInWorkspace
     }

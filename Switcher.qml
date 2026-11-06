@@ -16,6 +16,7 @@ Item {
   property string pendingCursorPosition: ""
   property bool currentWorkspaceAppsOnly: false
   property int appSessionWorkspaceId: 0
+  property var quitRequests: []
 
   function syncSubmap() {
     // Serialize enter/leave commands. A rapid close/reopen must not let an
@@ -44,10 +45,7 @@ Item {
     var selected = panel.apps[panel.selectedIndex]
     var apps = root.sessionApps()
     if (!apps.length) { panel.cancel(); return }
-    var selectedIndex = 0
-    for (var i = 0; i < apps.length; i++) {
-      if (selected && apps[i].id === selected.id) { selectedIndex = i; break }
-    }
+    var selectedIndex = SwitcherModel.selectionIndex(apps, selected ? selected.id : "", panel.selectedIndex)
     panel.apps = apps
     panel.selectedIndex = selectedIndex
   }
@@ -157,17 +155,65 @@ Item {
     var apps = root.sessionApps()
     for (var i = 0; i < apps.length; i++) {
       if (apps[i].id !== id) continue
-      var address = String(apps[i].addresses[0])
-      if (address.indexOf("0x") !== 0) address = "0x" + address
-      if (!/^0x[0-9a-f]+$/i.test(address)) return
-      root.pendingFocusTarget = "address:" + address
-      root.pendingWorkspaceFocus = false
-      root.pendingAppWorkspaceId = root.currentWorkspaceAppsOnly ? root.appSessionWorkspaceId : null
-      root.recentWindows = SwitcherModel.touchWindow(root.recentWindows, apps[i].addresses[0])
-      restoreCursorWarps.stop()
-      if (!cursorCapture.running) cursorCapture.running = true
+      root.activateWindow(apps[i].addresses[0], root.currentWorkspaceAppsOnly ? root.appSessionWorkspaceId : null)
       return
     }
+  }
+
+  function activateWindow(rawAddress, workspaceId) {
+    var address = String(rawAddress)
+    if (address.indexOf("0x") !== 0) address = "0x" + address
+    if (!/^0x[0-9a-f]+$/i.test(address)) return
+    root.pendingFocusTarget = "address:" + address
+    root.pendingWorkspaceFocus = false
+    root.pendingAppWorkspaceId = workspaceId
+    root.recentWindows = SwitcherModel.touchWindow(root.recentWindows, rawAddress)
+    restoreCursorWarps.stop()
+    if (!cursorCapture.running) cursorCapture.running = true
+  }
+
+  function showQuitDialog(window) {
+    root.quitRequests = []
+    panel.cancel()
+    root.activateWindow(window.address, null)
+  }
+
+  function quitApp(id) {
+    // Q quits the selected application across workspaces, even when A limits
+    // the displayed list. Resolve live windows instead of stale HUD addresses.
+    var plan = SwitcherModel.quitPlan(Hyprland.toplevels.values || [], root.appEntries(), id)
+    if (plan.dialog) { root.showQuitDialog(plan.dialog); return }
+    if (!plan.windows.length) { root.refreshApps(); return }
+    for (var i = 0; i < root.quitRequests.length; i++) {
+      if (root.quitRequests[i].id === id) return
+    }
+    root.quitRequests = root.quitRequests.concat([{
+      id: id, expires: Date.now() + 5000,
+      addresses: plan.windows.map(function(window) { return window.address })
+    }])
+    for (var j = 0; j < plan.windows.length; j++) {
+      var window = plan.windows[j]
+      if (window.wayland) window.wayland.close()
+      else {
+        var address = String(window.address).replace(/^0x/i, "")
+        if (/^[0-9a-f]+$/i.test(address))
+          Hyprland.dispatch("hl.dsp.window.close({ window = \"address:0x" + address + "\" })")
+      }
+    }
+  }
+
+  function checkQuitRequests() {
+    var pending = []
+    var windows = Hyprland.toplevels.values || []
+    var entries = root.appEntries()
+    for (var i = 0; i < root.quitRequests.length; i++) {
+      var request = root.quitRequests[i]
+      if (request.expires <= Date.now()) continue
+      var plan = SwitcherModel.quitPlan(windows, entries, request.id, request.addresses)
+      if (plan.dialog) { root.showQuitDialog(plan.dialog); return }
+      if (plan.windows.length) pending.push(request)
+    }
+    root.quitRequests = pending
   }
 
   IpcHandler {
@@ -247,6 +293,7 @@ Item {
     onActivated: function(appId) { root.activateApp(appId) }
     onWorkspaceActivated: function(workspaceId) { root.activateWorkspace(workspaceId) }
     onAppScopeChanged: function(currentWorkspaceOnly) { root.setAppScope(currentWorkspaceOnly) }
+    onQuitRequested: function(appId) { root.quitApp(appId) }
     onActiveChanged: root.syncSubmap()
   }
 
@@ -262,6 +309,16 @@ Item {
       if (submapControl.entering !== panel.active) root.syncSubmap()
       else if (panel.active) panel.inputReady = true
     }
+  }
+
+  // Some clients export a modal's parent shortly after the window is created.
+  // Watch only briefly after an explicit quit, so its save prompt can receive
+  // keyboard focus instead of staying behind the switcher's exclusive grab.
+  Timer {
+    interval: 100
+    repeat: true
+    running: root.quitRequests.length > 0
+    onTriggered: root.checkQuitRequests()
   }
 
   // Preserve the pointer position when focusing another app or workspace.
