@@ -2,15 +2,31 @@
 
 A macOS-style application switcher for Omarchy and Hyprland. It shows one icon
 per running application, ordered by recent use, on the currently focused output.
+Alt/Option + Tab opens a workspace switcher with window previews and names.
 
 The plugin ID is `harryxu.super-switcher`.
-The plugin now contains only application switching: no dock bar, pinned apps,
-auto-hide, drag-and-drop, window previews, or icon-management tools.
+The plugin contains application and workspace switching, without a dock bar,
+pinned apps, auto-hide, drag-and-drop, or icon-management tools.
 
 ## Keyboard and mouse
 
 - `Super + Tab`: next application.
 - `Super + Shift + Tab`: previous application.
+- `Alt/Option + Tab`: next workspace.
+- `Alt/Option + Shift + Tab`: previous workspace.
+- Hold Alt/Option and press Tab repeatedly to select a workspace; release
+  Alt/Option to switch. Escape cancels without changing workspace. Arrow keys,
+  Enter, hover, and clicking work in both modes.
+- Workspace mode lists all existing regular workspaces across monitors,
+  including empty and named workspaces. Numbered workspaces appear in numerical
+  order, followed by named workspaces in alphabetical order. Special scratchpad
+  workspaces are excluded.
+- Each workspace shows its name and a scaled preview of its wallpaper and
+  window layout, enclosed by a rounded border. The selected preview has a
+  stronger theme-colored outline. Window contents use Hyprland's toplevel capture protocol;
+  clients without capture support show their application icon in the same
+  position. Video wallpapers use the theme background color. Long lists scroll
+  horizontally to keep the selected workspace visible.
 - Hold Super and press Tab repeatedly to move through running applications.
 - Release Super to activate the selected application's most recently used window.
 - Per-device `altwin:swap_alt_win` mappings are supported, including a swapped
@@ -74,8 +90,10 @@ After editing QML, restart the shell to clear its component cache:
 omarchy restart shell
 ```
 
-The runtime bindings reserve `Super + Tab` and `Super + Shift + Tab` without
-editing Hyprland configuration files or changing Alt-based shortcuts.
+The runtime bindings reserve `Super + Tab`, `Super + Shift + Tab`, `Alt + Tab`,
+and `Alt + Shift + Tab` without editing Hyprland configuration files.
+The Alt shortcuts replace Omarchy's immediate next/previous workspace actions
+with preview selection and release-to-activate behavior.
 Bindings are restored after Hyprland configuration reloads, including those
 triggered by Omarchy theme changes.
 An active switching session is canceled when Hyprland configuration reloads.
@@ -91,10 +109,13 @@ The existing command names remain available:
 omarchy-shell harryxu.super-switcher altTabNext
 omarchy-shell harryxu.super-switcher altTabPrev
 omarchy-shell harryxu.super-switcher altTabCancel
+omarchy-shell harryxu.super-switcher workspaceNext
+omarchy-shell harryxu.super-switcher workspacePrev
 ```
 
-A next/previous call made with Super already released completes the switch
-automatically after the panel acquires focus. Dock visibility, placement,
+A next/previous call made with its modifier already released completes the
+switch automatically after the panel acquires focus. `altTabCancel` cancels
+either mode. Dock visibility, placement,
 auto-hide, pinning, and custom-icon commands have been removed.
 
 ## Tests
@@ -104,7 +125,7 @@ remapped-modifier tests (requires Node.js and a standalone Lua interpreter):
 
 ```bash
 ./tests/run.sh
-/usr/lib/qt6/bin/qmllint --ignore-settings --only-explicit-categories --syntax error Switcher.qml SwitcherPanel.qml
+/usr/lib/qt6/bin/qmllint --ignore-settings --only-explicit-categories --syntax error Switcher.qml SwitcherPanel.qml WorkspacePreview.qml
 omarchy plugin validate .
 ```
 
@@ -122,9 +143,12 @@ applications running, test quick-release switching through the live IPC path:
 
 ```bash
 python3 tests/switcher-live.test.py
+python3 tests/workspace-live.test.py
 ```
 
 This switches applications temporarily and restores the original window focus.
+The workspace test checks forward/reverse and consecutive quick releases and
+restores the original workspace and focus. It requires two existing workspaces.
 
 To verify shortcuts survive the compositor reload used by theme changes:
 

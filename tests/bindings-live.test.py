@@ -9,7 +9,8 @@ import os
 import subprocess
 import time
 
-EXPECTED = {64: 'App switcher next', 65: 'App switcher prev'}
+EXPECTED = {64: 'App switcher next', 65: 'App switcher prev',
+            8: 'Workspace switcher next', 9: 'Workspace switcher prev'}
 SUBMAP = 'harryxu-super-switcher'
 
 

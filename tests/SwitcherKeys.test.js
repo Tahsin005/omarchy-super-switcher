@@ -95,7 +95,7 @@ test("release before IPC/focus still accepts, and untrusted code lists are rejec
     assert.equal(keys.parseHeldKeys(value), null)
 })
 
-test("startup retries keep both navigation modes without duplicating Escape or removing user binds", () => {
+test("startup retries keep app/workspace bindings without duplicating Escape or removing user binds", () => {
   lua(`
     hl.bind("Escape", function() end)
     hl.bind("SUPER + mouse:272", function() end, {mouse = true})
@@ -104,7 +104,7 @@ test("startup retries keep both navigation modes without duplicating Escape or r
     ${keys.bindingCommand()}
     ${keys.bindingCommand()}
     ${keys.bindingCommand()}
-    assert(#bindings == 9, "Expected 4 user bindings and 5 switcher bindings")
+    assert(#bindings == 13, "Expected 4 user bindings and 9 switcher bindings")
     local counts = {}
     for _, binding in ipairs(bindings) do
       local key = binding.submap .. ":" .. binding.chord
@@ -117,10 +117,32 @@ test("startup retries keep both navigation modes without duplicating Escape or r
     for _, map in ipairs({"", "${keys.submapName}"}) do
       assert(counts[map .. ":SUPER + TAB"] == 1)
       assert(counts[map .. ":SUPER + SHIFT + TAB"] == 1)
+      assert(counts[map .. ":ALT + TAB"] == 1)
+      assert(counts[map .. ":ALT + SHIFT + TAB"] == 1)
     end
     assert(counts[":Escape"] == 1 and counts["user-mode:Escape"] == 1)
     assert(counts["${keys.submapName}:Escape"] == 1)
   `)
+})
+
+test("workspace shortcuts track Option and remapped Win positions through release in both submaps", () => {
+  for (const code of [64, 108, 133, 134]) {
+    for (const [chord, step] of [["ALT + TAB", 1], ["ALT + SHIFT + TAB", -1]]) {
+      for (const submap of ["", keys.submapName]) {
+        const dispatch = lua(`${keys.bindingCommand()} invoke("${chord}", "${submap}")`, [code, 23, 50])
+        assert.equal(dispatch, `omarchy-shell -q harryxu.super-switcher workspaceCycleHeld ${step} ${code}`)
+        const held = keys.parseHeldKeys(dispatch.split(" ").at(-1))
+        assert.equal(lua(keys.releaseCommand(held, 15), [code]), "")
+        assert.equal(lua(keys.releaseCommand(held, 15), [23, 50]),
+          "omarchy-shell -q harryxu.super-switcher.switcher acceptRelease 15")
+      }
+    }
+  }
+})
+
+test("workspace quick release follows the same release-before-focus path", () => {
+  assert.equal(lua(keys.cycleCommand(-1, "workspaces")),
+    "omarchy-shell -q harryxu.super-switcher workspaceCycleHeld -1 none")
 })
 
 test("submap navigation preserves per-device modifier tracking in both directions", () => {

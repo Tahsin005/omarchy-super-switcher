@@ -3,14 +3,16 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons as Commons
+import qs.Ui as Ui
 import "SwitcherKeys.js" as SwitcherKeys
 
-// macOS-style application switcher: one icon per running program.
+// Shared application/workspace switcher. Both modes use the same input grab
+// and physical-modifier release tracking.
 //
-// Keyboard contract: Hyprland consumes the SUPER+TAB global/submap binds (exec
-// omarchy-shell ... altTabNext/altTabPrev), so the bound key never reaches
+// Keyboard contract: Hyprland consumes SUPER/ALT+TAB global/submap binds, so
+// the bound key never reaches
 // this window. While visible it grabs the keyboard exclusively and receives
-// the unbound keys: Super release activates, Escape cancels, Enter activates,
+// the unbound keys: modifier release activates, Escape cancels, Enter activates,
 // arrows move the selection.
 PanelWindow {
   id: root
@@ -18,31 +20,37 @@ PanelWindow {
   property bool active: false
   // Map only after the compositor has isolated its mouse/keyboard bindings.
   property bool inputReady: false
+  property string mode: "apps"
+  readonly property bool workspaceMode: root.mode === "workspaces"
   property var apps: []
   property int selectedIndex: -1
   property int releaseGeneration: 0
-  property var heldSuperKeys: []
+  property var heldModifierKeys: []
   readonly property bool keyboardReady: root.active && root.inputReady && keyCatcher.activeFocus && keyCatcher.Window.active
   readonly property real naturalWidth: root.apps.length ? root.apps.length * root.slotWidth + (root.apps.length - 1) * root.slotSpacing + 2 * root.sidePadding : 0
   readonly property real surfaceWidth: Math.min(root.naturalWidth, Math.max(0, root.width - 2 * root.screenMargin))
   property var iconSourceFor: function(app) { return "" }
+  property var windowIconSourceFor: function(window) { return "" }
+  property string wallpaperSource: ""
 
   // Application icons in a centered, fixed-spacing row.
   readonly property int iconSize: root.slotWidth
   property int artworkSize: 84
-  property int slotWidth: 96
-  property int slotSpacing: 12
+  property int slotWidth: root.workspaceMode ? Math.min(256, Math.max(1, root.width - 2 * (root.screenMargin + root.sidePadding))) : 96
+  property int slotSpacing: root.workspaceMode ? 16 : 12
   property int sidePadding: 24
-  readonly property int surfaceHeight: root.iconSize + 2 * root.verticalPadding
-  property int surfaceRadius: 36
+  readonly property real rowHeight: root.workspaceMode ? root.slotWidth * 10 / 16 + 40 : root.iconSize
+  readonly property real surfaceHeight: root.rowHeight + 2 * root.verticalPadding
+  property int surfaceRadius: root.workspaceMode ? 28 : 36
   property int selectionRadius: 20
   property int screenMargin: 32
   // Equal space above and below the icons; the name lives in the lower inset.
-  property int verticalPadding: 32
+  property int verticalPadding: root.workspaceMode ? 24 : 32
   property int labelHeight: 24
   property int labelMargin: 12
 
   signal activated(string appId, string appName)
+  signal workspaceActivated(string workspaceId)
 
   function iconSource(app) {
     var src = root.iconSourceFor(app)
@@ -52,14 +60,15 @@ PanelWindow {
     return Quickshell.iconPath(src, true)
   }
 
-  onKeyboardReadyChanged: if (root.keyboardReady) root.checkSuperReleased()
+  onKeyboardReadyChanged: if (root.keyboardReady) root.checkModifierReleased()
 
-  function checkSuperReleased() {
-    // A quick tap can release Super before IPC opens the window. No release
+  function checkModifierReleased() {
+    if (!root.active) return
+    // A quick tap can release the modifier before IPC opens the window. No release
     // event will reach us in that case. Once keyboard focus is established,
     // query the compositor's key state to cover that gap without a delay.
     // Later releases are handled by Keys.onReleased as usual.
-    var command = SwitcherKeys.releaseCommand(root.heldSuperKeys, root.releaseGeneration)
+    var command = SwitcherKeys.releaseCommand(root.heldModifierKeys, root.releaseGeneration)
     Quickshell.execDetached(["hyprctl", "eval", command])
   }
 
@@ -71,9 +80,11 @@ PanelWindow {
     }
   }
 
-  function open(list, initialIndex, heldKeys) {
+  function open(list, initialIndex, heldKeys, mode) {
+    pointerGate.reset()
     root.releaseGeneration++
-    root.heldSuperKeys = heldKeys || []
+    root.mode = mode || "apps"
+    root.heldModifierKeys = heldKeys || []
     root.apps = list || []
     root.selectedIndex = initialIndex >= 0 && initialIndex < root.apps.length ? initialIndex : 0
     root.active = true
@@ -81,17 +92,19 @@ PanelWindow {
       if (!root.active) return
       keyCatcher.forceActiveFocus()
       // A new session can begin before the previous window loses focus.
-      if (root.keyboardReady) root.checkSuperReleased()
+      if (root.keyboardReady) root.checkModifierReleased()
     })
   }
 
   function next() {
     if (root.apps.length === 0) return
+    pointerGate.reset()
     root.selectedIndex = (root.selectedIndex + 1) % root.apps.length
   }
 
   function prev() {
     if (root.apps.length === 0) return
+    pointerGate.reset()
     root.selectedIndex = (root.selectedIndex - 1 + root.apps.length) % root.apps.length
   }
 
@@ -110,8 +123,10 @@ PanelWindow {
     var app = root.apps[root.selectedIndex]
     var id = app.id
     var name = app.name
+    var workspace = root.workspaceMode
     root.cancel()
-    root.activated(id, name)
+    if (workspace) root.workspaceActivated(id)
+    else root.activated(id, name)
   }
 
   visible: root.active && root.inputReady
@@ -123,6 +138,11 @@ PanelWindow {
   anchors { top: true; bottom: true; left: true; right: true }
   mask: Region { item: switcherSurface }
 
+  Ui.PointerMoveGate {
+    id: pointerGate
+    referenceItem: switcherSurface
+  }
+
   // Centered switcher surface.
   Rectangle {
     id: switcherSurface
@@ -131,7 +151,7 @@ PanelWindow {
     width: root.surfaceWidth
     height: root.surfaceHeight
     radius: root.surfaceRadius
-    color: Commons.Util.alpha(Commons.Color.background, 0.88)
+    color: Commons.Util.alpha(Commons.Color.background, root.workspaceMode ? 0.97 : 0.88)
     border.color: Commons.Util.alpha(Commons.Color.foreground, 0.20)
     border.width: 1
     opacity: root.active ? 1 : 0.96
@@ -141,7 +161,7 @@ PanelWindow {
       anchors.horizontalCenter: parent.horizontalCenter
       y: root.verticalPadding
       width: Math.max(0, parent.width - 2 * root.sidePadding)
-      height: root.iconSize
+      height: root.rowHeight
       orientation: ListView.Horizontal
       spacing: root.slotSpacing
       clip: root.naturalWidth > root.surfaceWidth
@@ -159,22 +179,22 @@ PanelWindow {
       onWidthChanged: Qt.callLater(appRow.revealSelection)
 
       delegate: Item {
-        id: item
+        id: entryTile
         required property var modelData
         required property int index
 
         width: root.slotWidth
-        height: root.iconSize
+        height: root.rowHeight
 
         // Highlight the application selected by keyboard or pointer.
         Rectangle {
           anchors.centerIn: parent
           width: root.slotWidth
-          height: root.slotWidth
-          radius: root.selectionRadius
-          color: Commons.Util.alpha(Commons.Color.accent, 0.28)
+          height: root.rowHeight
+          radius: root.workspaceMode ? 16 : root.selectionRadius
+          color: Commons.Util.alpha(Commons.Color.accent, root.workspaceMode ? 0.08 : 0.28)
           border.color: Commons.Util.alpha(Commons.Color.accent, 0.40)
-          border.width: 2
+          border.width: root.workspaceMode ? 0 : 2
           visible: root.selectedIndex === index
         }
 
@@ -183,15 +203,58 @@ PanelWindow {
           anchors.verticalCenter: parent.verticalCenter
           width: root.iconSize
           height: root.iconSize
-          source: root.iconSource(modelData)
+          source: root.workspaceMode ? "" : root.iconSource(modelData)
           artworkSize: root.artworkSize
+          visible: !root.workspaceMode
+        }
+
+        Loader {
+          active: root.workspaceMode
+          x: 8
+          y: 8
+          width: parent.width - 16
+          height: parent.height - 44
+          sourceComponent: WorkspacePreview {
+            workspace: entryTile.modelData ? entryTile.modelData.workspace || null : null
+            wallpaperSource: root.wallpaperSource
+            iconSourceFor: root.windowIconSourceFor
+            selected: root.selectedIndex === entryTile.index
+          }
+        }
+
+        Text {
+          visible: root.workspaceMode
+          x: 8
+          y: parent.height - 32
+          width: parent.width - 16
+          height: 24
+          text: entryTile.modelData ? String(entryTile.modelData.name || entryTile.modelData.id || "") : ""
+          textFormat: Text.PlainText
+          horizontalAlignment: Text.AlignHCenter
+          verticalAlignment: Text.AlignVCenter
+          elide: Text.ElideRight
+          maximumLineCount: 1
+          color: Commons.Color.foreground
+          font.family: Commons.Style.fontFamily
+          font.pixelSize: 13
+          font.weight: root.selectedIndex === entryTile.index ? Font.DemiBold : Font.Medium
         }
 
         MouseArea {
+          id: pointerArea
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onEntered: root.selectedIndex = index
+          // Mapping the panel or scrolling the row can put a tile underneath
+          // a stationary pointer. Only actual movement should replace the
+          // keyboard selection, especially during a quick Alt+Tab release.
+          onEntered: {
+            if (pointerGate.moved(pointerArea, { x: mouseX, y: mouseY }))
+              root.selectedIndex = index
+          }
+          onPositionChanged: function(mouse) {
+            if (pointerGate.moved(pointerArea, mouse)) root.selectedIndex = index
+          }
           onClicked: {
             root.selectedIndex = index
             root.activateSelected()
@@ -206,7 +269,7 @@ PanelWindow {
       readonly property real iconCenter: appRow.x + (appRow.currentItem ? appRow.currentItem.x + root.slotWidth / 2 - appRow.contentX : appRow.width / 2)
       text: app ? String(app.name || app.id || "") : ""
       textFormat: Text.PlainText
-      visible: !!app && !!appRow.currentItem
+      visible: !root.workspaceMode && !!app && !!appRow.currentItem
       // Keep the name centered under its icon, including while the row scrolls.
       // At either edge, shorten long names rather than spilling out of the panel.
       width: Math.max(0, Math.min(200, 2 * Math.min(iconCenter - root.labelMargin, switcherSurface.width - root.labelMargin - iconCenter)))
@@ -251,7 +314,7 @@ PanelWindow {
         // position can also be Alt after a per-device Alt/Win swap. Check
         // the keys captured by the actual shortcut instead of guessing from
         // this event's symbol or scan code. Tab/Shift release must not accept.
-        if (!event.isAutoRepeat) root.checkSuperReleased()
+        if (!event.isAutoRepeat) root.checkModifierReleased()
       }
     }
   }

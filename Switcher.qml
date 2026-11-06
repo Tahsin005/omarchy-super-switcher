@@ -4,12 +4,14 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import "SwitcherModel.js" as SwitcherModel
 import "SwitcherKeys.js" as SwitcherKeys
+import "WorkspaceModel.js" as WorkspaceModel
 
 Item {
   id: root
 
   property var recentWindows: []
   property string pendingFocusTarget: ""
+  property bool pendingWorkspaceFocus: false
   property string pendingCursorPosition: ""
 
   function syncSubmap() {
@@ -55,7 +57,7 @@ Item {
   }
 
   function cycle(step, heldKeys) {
-    if (panel.active) {
+    if (panel.active && !panel.workspaceMode) {
       if (step > 0) panel.next(); else panel.prev()
       return
     }
@@ -63,7 +65,52 @@ Item {
     var apps = root.runningApps()
     if (!apps.length) return
     var current = SwitcherModel.appForWindow(Hyprland.activeToplevel, root.appEntries())
-    panel.open(apps, SwitcherModel.initialIndex(apps, current ? current.id : "", step), heldKeys)
+    panel.open(apps, SwitcherModel.initialIndex(apps, current ? current.id : "", step), heldKeys, "apps")
+  }
+
+  function workspaceEntries() {
+    return WorkspaceModel.buildWorkspaces(Hyprland.workspaces.values || [])
+  }
+
+  function cycleWorkspaces(step, heldKeys) {
+    if (panel.active && panel.workspaceMode) {
+      if (step > 0) panel.next(); else panel.prev()
+      return
+    }
+    Hyprland.refreshMonitors()
+    Hyprland.refreshWorkspaces()
+    Hyprland.refreshToplevels()
+    if (!wallpaperPath.running) wallpaperPath.running = true
+    var workspaces = root.workspaceEntries()
+    if (!workspaces.length) return
+    var current = Hyprland.focusedWorkspace
+    panel.open(workspaces, SwitcherModel.initialIndex(workspaces, current ? String(current.id) : "", step), heldKeys, "workspaces")
+  }
+
+  function updateWorkspaces() {
+    if (!panel.active || !panel.workspaceMode) return
+    var selected = panel.apps[panel.selectedIndex]
+    var workspaces = root.workspaceEntries()
+    if (!workspaces.length) { panel.cancel(); return }
+    var index = Math.min(panel.selectedIndex, workspaces.length - 1)
+    for (var i = 0; i < workspaces.length; i++) {
+      if (selected && workspaces[i].id === selected.id) { index = i; break }
+    }
+    panel.apps = workspaces
+    panel.selectedIndex = Math.max(0, index)
+  }
+
+  function activateWorkspace(id) {
+    // A workspace may disappear during selection; never recreate a stale one.
+    var workspaces = root.workspaceEntries()
+    for (var i = 0; i < workspaces.length; i++) {
+      if (workspaces[i].id !== id) continue
+      root.pendingFocusTarget = id
+      root.pendingWorkspaceFocus = true
+      restoreCursorWarps.stop()
+      if (!cursorCapture.running) cursorCapture.running = true
+      return
+    }
   }
 
   function iconSource(app) {
@@ -83,6 +130,7 @@ Item {
       if (address.indexOf("0x") !== 0) address = "0x" + address
       if (!/^0x[0-9a-f]+$/i.test(address)) return
       root.pendingFocusTarget = "address:" + address
+      root.pendingWorkspaceFocus = false
       root.recentWindows = SwitcherModel.touchWindow(root.recentWindows, apps[i].addresses[0])
       restoreCursorWarps.stop()
       if (!cursorCapture.running) cursorCapture.running = true
@@ -97,6 +145,12 @@ Item {
     function cycleHeld(step: int, keycodes: string): void {
       var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
       if (heldKeys !== null) root.cycle(step, heldKeys)
+    }
+    function workspaceNext(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(1, "workspaces")]) }
+    function workspacePrev(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(-1, "workspaces")]) }
+    function workspaceCycleHeld(step: int, keycodes: string): void {
+      var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
+      if (heldKeys !== null) root.cycleWorkspaces(step, heldKeys)
     }
     function altTabCancel(): void { panel.cancel() }
   }
@@ -116,6 +170,8 @@ Item {
                  && panel.active && panel.inputReady) {
         // Includes the compositor-side Escape fallback and external mode changes.
         panel.cancel()
+      } else if (String(event.name) === "renameworkspace") {
+        Qt.callLater(root.updateWorkspaces)
       }
     }
   }
@@ -128,15 +184,25 @@ Item {
         for (var i = 0; i < windows.length; i++) if (windows[i].address === address) return true
         return false
       })
-      if (panel.active && !root.runningApps().length) panel.cancel()
+      if (panel.active && !panel.workspaceMode && !root.runningApps().length) panel.cancel()
     }
+  }
+
+  Connections {
+    target: Hyprland.workspaces
+    function onValuesChanged() { root.updateWorkspaces() }
   }
 
   SwitcherPanel {
     id: panel
     screen: root.focusedScreen()
     iconSourceFor: function(app) { return root.iconSource(app) }
+    windowIconSourceFor: function(window) {
+      var app = SwitcherModel.appForWindow(window, root.appEntries())
+      return root.iconSource(app || { id: "", icon: "" })
+    }
     onActivated: function(appId) { root.activateApp(appId) }
+    onWorkspaceActivated: function(workspaceId) { root.activateWorkspace(workspaceId) }
     onActiveChanged: root.syncSubmap()
   }
 
@@ -145,7 +211,7 @@ Item {
     property bool entering: false
     onExited: function(exitCode, exitStatus) {
       if (exitCode !== 0 || exitStatus !== 0) {
-        console.warn("App switcher: could not update Hyprland submap")
+        console.warn("Switcher: could not update Hyprland submap")
         if (panel.active) panel.cancel()
         return
       }
@@ -174,8 +240,18 @@ Item {
       if (!root.pendingFocusTarget) return
       var target = root.pendingFocusTarget
       root.pendingFocusTarget = ""
-      Hyprland.dispatch("hl.dsp.focus({ window = \"" + target + "\" })")
-      Qt.callLater(function() { Hyprland.dispatch("hl.dsp.window.bring_to_top()") })
+      if (root.pendingWorkspaceFocus) {
+        // Resolve again after the asynchronous cursor capture.
+        var workspaces = root.workspaceEntries()
+        for (var i = 0; i < workspaces.length; i++) {
+          if (workspaces[i].id !== target) continue
+          Hyprland.dispatch(WorkspaceModel.focusCommand(workspaces[i].workspace))
+          break
+        }
+      } else {
+        Hyprland.dispatch("hl.dsp.focus({ window = \"" + target + "\" })")
+        Qt.callLater(function() { Hyprland.dispatch("hl.dsp.window.bring_to_top()") })
+      }
       restoreCursorWarps.restart()
     }
   }
@@ -189,6 +265,17 @@ Item {
         Hyprland.dispatch("hl.dsp.cursor.move({ x = " + position[1] + ", y = " + position[2] + " })")
       root.pendingCursorPosition = ""
       Quickshell.execDetached(["hyprctl", "eval", "hl.config({ cursor = { no_warps = false } })"])
+    }
+  }
+
+  Process {
+    id: wallpaperPath
+    command: ["readlink", "-f", (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/current/background"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var path = text.trim()
+        panel.wallpaperSource = path && !/\.(mp4|webm|mkv|mov|m4v|avi)$/i.test(path) ? "file://" + path : ""
+      }
     }
   }
 
