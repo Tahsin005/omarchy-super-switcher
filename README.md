@@ -67,12 +67,12 @@ including empty and named workspaces. Numbered workspaces come first in
 numerical order, followed by named workspaces in alphabetical order. Special
 scratchpad workspaces are excluded.
 
-Each preview shows the wallpaper and window layout inside a rounded border.
-The selected preview has a stronger outline in the theme's accent color.
+Each preview shows the window layout on a solid theme-colored background,
+inside a rounded border. Desktop wallpapers are not loaded. The selected
+preview has a stronger outline in the theme's accent color.
 Window contents use Hyprland's toplevel capture protocol. If a client cannot
-be captured, its application icon appears in the same position. Video
-wallpapers use the theme background color. Long lists scroll horizontally to
-keep the selection visible.
+be captured, its application icon appears in the same position. Long lists
+scroll horizontally to keep the selection visible.
 
 Hold Alt/Option while choosing a workspace. The desktop changes when you
 release it; Escape cancels the selection.

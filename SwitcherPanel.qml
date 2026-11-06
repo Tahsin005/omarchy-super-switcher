@@ -31,7 +31,6 @@ PanelWindow {
   readonly property real surfaceWidth: Math.min(root.naturalWidth, Math.max(0, root.width - 2 * root.screenMargin))
   property var iconSourceFor: function(app) { return "" }
   property var windowIconSourceFor: function(window) { return "" }
-  property string wallpaperSource: ""
 
   // Application icons in a centered, fixed-spacing row.
   readonly property int iconSize: root.slotWidth
@@ -216,7 +215,6 @@ PanelWindow {
           height: parent.height - 44
           sourceComponent: WorkspacePreview {
             workspace: entryTile.modelData ? entryTile.modelData.workspace || null : null
-            wallpaperSource: root.wallpaperSource
             iconSourceFor: root.windowIconSourceFor
             selected: root.selectedIndex === entryTile.index
           }

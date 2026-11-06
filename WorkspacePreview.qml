@@ -9,7 +9,6 @@ Item {
 
   property var workspace: null
   property var iconSourceFor: function(window) { return "" }
-  property string wallpaperSource: ""
   property bool selected: false
   property real cornerRadius: 12
   readonly property var windows: workspace && workspace.toplevels ? workspace.toplevels.values : []
@@ -32,15 +31,6 @@ Item {
     // Keep the layout fixed as the focus border changes thickness. Content
     // clips to the rounded frame, including windows touching an output edge.
     contentInsideBorder: false
-
-    Image {
-      anchors.fill: parent
-      source: root.wallpaperSource
-      sourceSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))
-      fillMode: Image.PreserveAspectCrop
-      asynchronous: true
-      cache: false
-    }
 
     Repeater {
       model: root.windows

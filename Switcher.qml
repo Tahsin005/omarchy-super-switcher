@@ -80,7 +80,6 @@ Item {
     Hyprland.refreshMonitors()
     Hyprland.refreshWorkspaces()
     Hyprland.refreshToplevels()
-    if (!wallpaperPath.running) wallpaperPath.running = true
     var workspaces = root.workspaceEntries()
     if (!workspaces.length) return
     var current = Hyprland.focusedWorkspace
@@ -265,17 +264,6 @@ Item {
         Hyprland.dispatch("hl.dsp.cursor.move({ x = " + position[1] + ", y = " + position[2] + " })")
       root.pendingCursorPosition = ""
       Quickshell.execDetached(["hyprctl", "eval", "hl.config({ cursor = { no_warps = false } })"])
-    }
-  }
-
-  Process {
-    id: wallpaperPath
-    command: ["readlink", "-f", (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/current/background"]
-    stdout: StdioCollector {
-      onStreamFinished: {
-        var path = text.trim()
-        panel.wallpaperSource = path && !/\.(mp4|webm|mkv|mov|m4v|avi)$/i.test(path) ? "file://" + path : ""
-      }
     }
   }
 
