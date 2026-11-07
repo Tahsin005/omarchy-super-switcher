@@ -1,24 +1,18 @@
 # Omarchy Super Switcher
 
-A macOS-style app and workspace switcher for Omarchy and Hyprland. Press
+A macOS-style app and workspace switcher for Omarchy. Press
 `Super + Tab` to choose an app, or `Alt/Option + Tab` to preview workspaces.
-Release the modifier key to switch. Both panels open on the focused display.
 
-The plugin ID is `harryxu.super-switcher`. It handles switching without a dock,
-pinned apps, auto-hide, drag-and-drop, or icon-management tools.
+https://github.com/user-attachments/assets/5a026d2b-4dac-4446-a000-4bce0149243b
+
 
 ## Screenshots
 
 ### Application switcher
 
-One icon per running app, ordered by recent use.
-
 ![Application switcher with native app icons and the selected app's name](assets/screenshots/app-switcher.png)
 
 ### Workspace switcher
-
-Window previews and workspace names, with a theme-colored border around the
-selection.
 
 ![Workspace switcher showing Browse, Code, and Files in a demo session](assets/screenshots/workspace-switcher.png)
 
