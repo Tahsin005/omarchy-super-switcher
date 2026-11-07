@@ -6,11 +6,17 @@ https://github.com/user-attachments/assets/5a026d2b-4dac-4446-a000-4bce0149243b
 
 ## Installation
 
-Requires Omarchy with Quickshell and Hyprland's Lua configuration API.
+Requires Omarchy with the Quickshell-based Omarchy shell and Hyprland 0.56 or
+later with its Lua configuration API. The plugin uses the `omarchy-shell` and
+`hyprctl` commands provided by Omarchy and Hyprland.
 
 ```bash
 omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enable
 ```
+
+Enabling the plugin automatically takes over `Super + Tab`, `Alt + Tab`, and
+their Shift variants for the current Hyprland session. Installation requires
+no additional setup or edits to your Hyprland configuration files.
 
 ## Keyboard and mouse
 
@@ -69,4 +75,11 @@ omarchy-shell harryxu.super-switcher setWorkspacePreviewMode static
 
 ```bash
 omarchy plugin remove harryxu.super-switcher --yes
+hyprctl reload
 ```
+
+Reloading Hyprland restores the bindings from your configuration.
+
+## License
+
+[MIT](LICENSE)
