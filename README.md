@@ -6,15 +6,6 @@ A macOS-style app and workspace switcher for Omarchy. Press
 https://github.com/user-attachments/assets/5a026d2b-4dac-4446-a000-4bce0149243b
 
 
-## Screenshots
-
-### Application switcher
-
-![Application switcher with native app icons and the selected app's name](assets/screenshots/app-switcher.png)
-
-### Workspace switcher
-
-![Workspace switcher showing Browse, Code, and Files in a demo session](assets/screenshots/workspace-switcher.png)
 
 ## Keyboard and mouse
 
@@ -52,6 +43,16 @@ Per-device `altwin:swap_alt_win` mappings work with a swapped external PC
 keyboard and an unchanged internal Apple keyboard. The switcher captures the
 held Alt/Win physical keys when the shortcut fires and tracks them until
 release, so logical Super does not have to be physical Win.
+
+## Screenshots
+
+### Application switcher
+
+![Application switcher with native app icons and the selected app's name](assets/screenshots/app-switcher.png)
+
+### Workspace switcher
+
+![Workspace switcher showing Browse, Code, and Files in a demo session](assets/screenshots/workspace-switcher.png)
 
 ## Applications
 
