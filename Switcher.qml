@@ -7,6 +7,9 @@ import "SwitcherModel.js" as SwitcherModel
 import "SwitcherKeys.js" as SwitcherKeys
 import "WorkspaceModel.js" as WorkspaceModel
 
+// For local development, symlink this checkout at ~/.config/omarchy/plugins/harryxu.super-switcher.
+// Run `omarchy-shell shell rescanPlugins`, then `omarchy plugin enable harryxu.super-switcher`.
+// After editing QML, run `omarchy restart shell` to clear the component cache.
 Item {
   id: root
 
@@ -126,6 +129,7 @@ Item {
     var workspaces = root.workspaceEntries()
     if (!workspaces.length) return
     var current = Hyprland.focusedWorkspace
+    // Keep the preview mode fixed while the switcher is open.
     panel.workspaceLivePreview = root.workspacePreviewMode === "live"
     panel.open(workspaces, SwitcherModel.initialIndex(workspaces, current ? String(current.id) : "", step), heldKeys, "workspaces")
   }
@@ -258,6 +262,7 @@ Item {
       return previewModeFile.loaded && previewModeFile.text().trim() === mode
         ? mode : "Could not save workspace preview mode."
     }
+    // Both switchers share this IPC command, including during the hold delay.
     function altTabCancel(): void { panel.cancel() }
   }
 

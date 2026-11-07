@@ -1,10 +1,11 @@
 .pragma library
 
 var submapName = "harryxu-super-switcher"
+// A quick release commits the selection. Holding through this delay opens the panel.
 var holdThresholdMs = 60
 
-// Capture held Alt/Win positions at the binding, before the IPC/focus handoff:
-// Hyprland's keysym query may use the global keymap instead of a device map.
+// Capture physical Alt/Win positions before the IPC handoff. Hyprland's keysym
+// query can use the global keymap and miss a per-device altwin:swap_alt_win mapping.
 function cycleCommand(step, mode) {
   return "local held = {} "
     + "for _, code in ipairs({64, 108, 133, 134}) do "
@@ -35,6 +36,8 @@ function bindingCommand() {
     return "hl.bind(\"" + shortcut[0] + "\", function() " + cycleCommand(shortcut[2], shortcut[3])
       + " end, { description = \"" + shortcut[1] + "\" }) "
   }).join("")
+  // The submap suppresses Super+click window drags while the panel is open.
+  // Escape resets it before calling IPC, even if the shell has crashed.
   return globals + "hl.define_submap(\"" + submapName + "\", function() " + submap
     + "if not _G.harryxu_super_switcher_escape then "
     + "hl.bind(\"Escape\", function() "

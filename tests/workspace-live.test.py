@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Test workspace quick-release activation on an unlocked Hyprland desktop."""
+"""Test quick workspace switches with the plugin enabled on an unlocked desktop.
+
+Requires two regular workspaces. Restores the original workspace and focus.
+"""
 import json
 import re
 import subprocess

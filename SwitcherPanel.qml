@@ -116,6 +116,8 @@ PanelWindow {
     root.apps = list || []
     root.selectedIndex = initialIndex >= 0 && initialIndex < root.apps.length ? initialIndex : 0
     root.active = true
+    // Modifier release can beat the IPC handoff. Commit immediately if no
+    // modifier is held.
     if (!root.heldModifierKeys.length) root.activateSelected()
     else root.checkPendingHold()
   }

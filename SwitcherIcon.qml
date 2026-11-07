@@ -1,7 +1,8 @@
 import QtQuick
 import "IconGeometry.js" as Geometry
 
-// Keep the native image renderer; sample its rendered alpha once per source.
+// Sample the native rendering once per source. Fit and center the visible
+// artwork within artworkSize, ignoring transparent padding and faint shadows.
 Item {
   id: root
 

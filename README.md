@@ -1,48 +1,38 @@
 # Omarchy Super Switcher
 
-A macOS-style app and workspace switcher for Omarchy. Press
-`Super + Tab` to choose an app, or `Alt/Option + Tab` to preview workspaces.
+A macOS-style app and workspace switcher for Omarchy.
 
 https://github.com/user-attachments/assets/5a026d2b-4dac-4446-a000-4bce0149243b
 
+## Installation
 
+Requires Omarchy with Quickshell and Hyprland's Lua configuration API.
+
+```bash
+omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enable
+```
 
 ## Keyboard and mouse
 
 | Shortcut | Action |
 | --- | --- |
-| `Super + Tab` | Next application |
-| `Super + Shift + Tab` | Previous application |
-| Hold `A` while using `Super + Tab` or `Super + Shift + Tab` | Cycle through only applications with windows on the current workspace |
+| `Super + Tab` | Next app |
+| `Super + Shift + Tab` | Previous app |
+| Hold `A` with `Super + Tab` or `Super + Shift + Tab` | Show only apps with windows on the current workspace |
 | `Alt/Option + Tab` | Next workspace |
 | `Alt/Option + Shift + Tab` | Previous workspace |
+| `Left`/`Right` or hover | Move the selection |
+| `Enter` or click | Activate the selection |
+| `Escape` | Cancel |
+| `Q` in the app switcher | Ask the selected app to close all its windows across workspaces |
 
-Hold Super or Alt/Option and press Tab repeatedly to move through the list.
-Release the modifier to activate the selection. A quick tap switches directly
-without opening the panel. After a 60 ms hold delay, the switcher opens if
-Super or Alt/Option is still held. Tab presses during the delay still move the selection.
+Hold Super or Alt/Option and press Tab to browse. Release the modifier to
+activate your selection. A quick tap switches without opening the panel.
 
-Arrow keys move the selection, Enter activates it, and Escape cancels. Moving
-the pointer over an item selects it; clicking activates it. Long names are
-shortened to fit. The app switcher shows the selected app's name below its icon.
+You can also hold `A` after the app switcher opens. Keep it held to switch to a
+window on the current workspace. Release `A` to see all apps again.
 
-While the app switcher is open, hold `A` to show only applications with windows
-on the current workspace. Release `A` to restore the full list. You can also
-hold `A` when pressing `Super + Tab` or `Super + Shift + Tab`. In this mode,
-activation stays within the current workspace, even if the selected app has a
-more recently used window elsewhere.
-
-Press `Q` in the app switcher to request a normal close of all windows of the
-selected application, across workspaces. The next item is selected when the
-app closes. Holding `Q` does not quit additional apps. If a save confirmation
-appears, the switcher closes and focuses the dialog. Apps configured to stay
-in the background after their windows close may continue running. `Q` does
-nothing in the workspace switcher.
-
-Per-device `altwin:swap_alt_win` mappings work with a swapped external PC
-keyboard and an unchanged internal Apple keyboard. The switcher captures the
-held Alt/Win physical keys when the shortcut fires and tracks them until
-release, so logical Super does not have to be physical Win.
+If `Q` brings up a save dialog, the switcher closes and focuses it.
 
 ## Screenshots
 
@@ -56,59 +46,18 @@ release, so logical Super does not have to be physical Win.
 
 ## Applications
 
-Each running application appears once. Apps are ordered by recent use, and
-selecting one focuses its most recently used window.
-
-Icons come from native desktop entries, with a bundled fallback for unknown
-apps. The switcher does not download icons or write dock settings. Visible
-artwork is centered and fitted to an 84px maximum dimension, matching smaller
-native icons. Transparent padding and faint shadows do not affect the size;
-source geometry is measured once and cached.
-
-The panel is 160px high, with 96px selection tiles, 12px gaps, 24px horizontal
-padding, and 32px above and below the icons. The app name sits in the lower
-padding. Long lists scroll horizontally to keep the selection within the
-display margins.
+The switcher lists each running app once, most recently used first. Switching
+to an app focuses its most recently used window.
 
 ## Workspaces
 
-The workspace switcher lists all existing regular workspaces across monitors,
-including empty and named workspaces. Numbered workspaces come first in
-numerical order, followed by named workspaces in alphabetical order. Special
-scratchpad workspaces are excluded.
-
-Each preview shows the window layout on a solid theme-colored background,
-inside a rounded border. Desktop wallpapers are not loaded. The selected
-preview has a stronger outline in the theme's accent color.
-Window contents use Hyprland's toplevel capture protocol. If a client cannot
-be captured, its application icon appears in the same position. Long lists
-scroll horizontally to keep the selection visible.
-
-Hold Alt/Option while choosing a workspace. The desktop changes when you
-release it; Escape cancels the selection.
-
-## Requirements
-
-Omarchy with Quickshell and Hyprland's Lua configuration API, including
-`hl.is_key_down`, `hl.on`, `hl.timer`, `hl.define_submap`, `hl.get_current_submap`,
-`o.rebind`, and the `omarchy-shell` IPC command.
-
-## Installation
-
-Install and enable the plugin from
-[harryxu/omarchy-super-switcher](https://github.com/harryxu/omarchy-super-switcher):
-
-```bash
-omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enable
-```
+The switcher shows regular workspaces across all monitors, including empty
+ones. It lists numbered workspaces in order, then named workspaces alphabetically.
 
 ## Workspace preview settings
 
-- **Static snapshot (`static`, default).** Each window preview captures one
-  frame when it appears and holds it while you browse.
-- **Live preview (`live`).** Window previews update as their contents change.
-
-Run these commands with the plugin enabled:
+Previews show still images by default. Live previews update as you browse.
+Changes apply the next time you open the workspace switcher.
 
 ```bash
 omarchy-shell harryxu.super-switcher workspacePreviewMode
@@ -116,106 +65,8 @@ omarchy-shell harryxu.super-switcher setWorkspacePreviewMode live
 omarchy-shell harryxu.super-switcher setWorkspacePreviewMode static
 ```
 
-The setting takes effect the next time you open the workspace switcher. It is
-saved in `${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/super-switcher-preview-mode`.
-
-## Development installation
-
-Clone the repository and link it into the user plugin directory under its
-manifest ID, `harryxu.super-switcher`:
-
-```bash
-git clone https://github.com/harryxu/omarchy-super-switcher.git
-cd omarchy-super-switcher
-mkdir -p ~/.config/omarchy/plugins
-ln -s "$PWD" ~/.config/omarchy/plugins/harryxu.super-switcher
-omarchy-shell shell rescanPlugins
-omarchy plugin enable harryxu.super-switcher
-```
-
-If the destination already exists, remove the previous plugin installation
-before creating the link. The plugin uses source files directly from the
-checkout. After editing QML, restart the shell to clear its component cache:
-
-```bash
-omarchy restart shell
-```
-
-The plugin registers `Super + Tab`, `Super + Shift + Tab`, `Alt + Tab`, and
-`Alt + Shift + Tab` at runtime without editing Hyprland configuration files.
-The Alt shortcuts replace Omarchy's immediate next/previous workspace actions
-with preview selection and activation on release.
-
-Bindings are restored after Hyprland configuration reloads, including theme
-changes. A reload cancels any open switching session. Plugin unload and shell
-startup also reset the switcher's input mode.
-
-While a panel is open, a dedicated Hyprland submap prevents held Super from
-turning clicks into window drags. Closing the panel restores normal bindings.
-If the shell crashes with a panel open, Escape restores normal shortcuts
-directly in Hyprland, with or without Super held.
-
-## IPC
-
-```bash
-omarchy-shell harryxu.super-switcher altTabNext
-omarchy-shell harryxu.super-switcher altTabPrev
-omarchy-shell harryxu.super-switcher altTabCancel
-omarchy-shell harryxu.super-switcher workspaceNext
-omarchy-shell harryxu.super-switcher workspacePrev
-```
-
-A next/previous call made with no modifier held switches directly.
-`altTabCancel` cancels either mode, including during the hold delay.
-
-## Tests
-
-Run the logic tests, QML syntax check, and plugin validation. The logic tests
-cover application grouping, icon lookup, MRU ordering, navigation, and remapped
-modifiers, and require Node.js and a standalone Lua interpreter.
-
-```bash
-./tests/run.sh
-/usr/lib/qt6/bin/qmllint --ignore-settings --only-explicit-categories --syntax error Switcher.qml SwitcherPanel.qml WorkspacePreview.qml
-omarchy plugin validate .
-```
-
-Run the Qt rendering tests at 100%, 160%, and 200% scale (requires Qt Test):
-
-```bash
-./tests/render.sh
-```
-
-These check visible artwork size and centering for opaque and asymmetrically
-padded icons, including reopening from the geometry cache.
-
-With the plugin enabled on an unlocked Hyprland desktop, run the live
-quick-release tests:
-
-```bash
-python3 tests/switcher-live.test.py
-python3 tests/workspace-live.test.py
-```
-
-The application test needs at least two running apps and restores the original
-window focus afterward. The workspace test needs two existing workspaces. It
-checks forward, reverse, and consecutive quick releases, then restores the
-original workspace and focus.
-
-To check that shortcuts survive the compositor reload used by theme changes:
-
-```bash
-python3 tests/bindings-live.test.py
-```
-
-This waits for startup retries to finish and checks two configuration reloads
-without changing the selected theme.
-
 ## Removal
 
 ```bash
 omarchy plugin remove harryxu.super-switcher --yes
 ```
-
-For a development installation, removal unlinks the plugin and keeps the
-checkout.
