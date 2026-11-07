@@ -1,6 +1,7 @@
 .pragma library
 
 var submapName = "harryxu-super-switcher"
+var holdThresholdMs = 60
 
 // Capture held Alt/Win positions at the binding, before the IPC/focus handoff:
 // Hyprland's keysym query may use the global keymap instead of a device map.
@@ -65,6 +66,35 @@ function parseHeldKeys(value) {
   return codes
 }
 
+function pendingCommand(codes, generation) {
+  var keys = codes.map(function(code) { return "[" + code + "] = true" }).join(", ")
+  // Hyprland emits the release event before clearing that key's pressed state.
+  // Ignore the released code when checking the other captured modifiers.
+  return "local state = _G.harryxu_super_switcher_pending or {} "
+    + "_G.harryxu_super_switcher_pending = state "
+    + "local keys = {" + keys + "} "
+    + "local function any_held(released) "
+    + "for code in pairs(keys) do if code ~= released and hl.is_key_down(code) then return true end end "
+    + "return false end "
+    + "local function stop() "
+    + "if state.release then state.release:remove() state.release = nil end "
+    + "if state.timer then state.timer:set_enabled(false) end "
+    + "state.deadline = nil end "
+    + "local function finish(held) stop() "
+    + "local method = held and \"acceptHold\" or \"acceptRelease\" "
+    + "hl.exec_cmd(\"omarchy-shell -q harryxu.super-switcher.switcher \" .. method .. \" " + generation + "\") end "
+    + "if not any_held() then finish(false) return end "
+    + "stop() "
+    + "state.release = hl.on(\"input.keyboard.key\", function(code, _, event) "
+    + "if event == 0 and keys[code] and not any_held(code) then finish(false) end end) "
+    + "state.deadline = function() finish(any_held()) end "
+    // Hyprland reclaims a oneshot timer only after it fires. Keep one reusable
+    // timer and stop it on release or on its first callback.
+    + "if state.timer then state.timer:set_timeout(" + holdThresholdMs + ") "
+    + "else state.timer = hl.timer(function() state.deadline() end, "
+    + "{ timeout = " + holdThresholdMs + ", type = \"repeat\" }) end"
+}
+
 function releaseCommand(codes, generation, trackAppScope, revision) {
   var checks = codes.map(function(code) { return "hl.is_key_down(" + code + ")" })
   return "if not (" + (checks.length ? checks.join(" or ") : "false") + ") then "
@@ -77,6 +107,6 @@ function releaseCommand(codes, generation, trackAppScope, revision) {
 
 if (typeof module !== "undefined") module.exports = {
   cycleCommand: cycleCommand, bindingCommand: bindingCommand,
-  parseHeldKeys: parseHeldKeys, releaseCommand: releaseCommand,
+  parseHeldKeys: parseHeldKeys, pendingCommand: pendingCommand, releaseCommand: releaseCommand,
   submapName: submapName, submapCommand: submapCommand
 }

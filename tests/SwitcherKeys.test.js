@@ -8,6 +8,7 @@ const context = { module: { exports: {} } }
 vm.runInNewContext(fs.readFileSync("SwitcherKeys.js", "utf8").replace(/^\.pragma library\s*/, ""), context)
 const keys = context.module.exports
 const plain = value => JSON.parse(JSON.stringify(value))
+const holdThresholdMs = 60
 
 function lua(command, down = [], invokeBinding) {
   const prelude = `
@@ -15,13 +16,34 @@ local down = {${down.map(code => `[${JSON.stringify(code)}] = true`).join(",")}}
 local bindings = {}
 local definingSubmap = ""
 local currentSubmap = ""
+local now = 0
+local holdThreshold = ${holdThresholdMs}
+local timer
+local listener
+local keyQueries = 0
 hl = {
   is_key_down = function(code)
     assert(type(code) == "number" or code == "a" or code == "A",
       "Modifier keys must use physical codes to preserve per-device mappings")
+    keyQueries = keyQueries + 1
     return down[code] == true
   end,
   exec_cmd = function(command) print(command) end,
+  on = function(event, callback)
+    assert(event == "input.keyboard.key" and listener == nil)
+    listener = callback
+    return { remove = function() listener = nil end }
+  end,
+  timer = function(callback, options)
+    assert(timer == nil, "The hold check should reuse its timer")
+    assert(options.timeout == holdThreshold and options.type == "repeat")
+    timer = { callback = callback, deadline = now + options.timeout,
+      set_enabled = function(self, enabled)
+        self.deadline = enabled and now + options.timeout or nil
+      end,
+      set_timeout = function(self, timeout) self.deadline = now + timeout end }
+    return timer
+  end,
   bind = function(chord, callback, options)
     table.insert(bindings, {chord = chord, callback = callback,
       options = options or {}, submap = definingSubmap})
@@ -51,6 +73,20 @@ local function invoke(chord, submap)
     end
   end
   error("Missing binding: " .. chord)
+end
+local function release(code)
+  -- Hyprland dispatches this event before updating hl.is_key_down.
+  if listener then listener(code, now, 0) end
+  down[code] = nil
+end
+local function advance(ms)
+  local endTime = now + ms
+  while timer and timer.deadline and timer.deadline <= endTime do
+    now = timer.deadline
+    timer.deadline = now + holdThreshold
+    timer.callback()
+  end
+  now = endTime
 end
 `
   return execFileSync("lua", ["-"], {
@@ -131,6 +167,54 @@ test("release before IPC/focus still accepts, and untrusted code lists are rejec
   assert.deepEqual(plain(keys.parseHeldKeys("64,64,134")), [64, 134])
   for (const value of ["", "23", "64,", "64); os.exit()", "1e2", "-1"])
     assert.equal(keys.parseHeldKeys(value), null)
+})
+
+test("a short tap commits before the hold threshold, including release before IPC", () => {
+  for (const code of [64, 133]) {
+    const command = keys.pendingCommand([code], 19)
+    const release = "omarchy-shell -q harryxu.super-switcher.switcher acceptRelease 19"
+    assert.equal(lua(command + "\nassert(not timer and not listener)"), release)
+    assert.equal(lua(`${command}
+      advance(holdThreshold - 20)
+      release(23)
+      assert(timer.deadline == holdThreshold and listener and keyQueries == 1)
+      release(${code})
+      assert(not timer.deadline and not listener)
+      advance(holdThreshold)
+    `, [code, 23]), release)
+  }
+})
+
+test("a held modifier requests the panel only at the threshold", () => {
+  assert.equal(lua(`${keys.pendingCommand([133, 134], 20)}
+    release(133)
+    advance(holdThreshold - 1)
+    assert(timer.deadline == holdThreshold and listener)
+    advance(1)
+    assert(not timer.deadline and not listener)
+    advance(holdThreshold)
+  `, [133, 134]), "omarchy-shell -q harryxu.super-switcher.switcher acceptHold 20")
+})
+
+test("the deadline checks the current modifier state if a release was missed", () => {
+  assert.equal(lua(`${keys.pendingCommand([108], 23)}
+    down[108] = nil
+    advance(holdThreshold)
+    assert(not timer.deadline and not listener)
+  `, [108]), "omarchy-shell -q harryxu.super-switcher.switcher acceptRelease 23")
+})
+
+test("a new pending session replaces the old modifier check and deadline", () => {
+  assert.equal(lua(`
+    do ${keys.pendingCommand([133], 21)} end
+    advance(holdThreshold - 10)
+    do ${keys.pendingCommand([64], 22)} end
+    release(133)
+    advance(holdThreshold - 1)
+    assert(timer.deadline == 2 * holdThreshold - 10 and listener)
+    advance(1)
+    assert(not timer.deadline and not listener)
+  `, [64, 133]), "omarchy-shell -q harryxu.super-switcher.switcher acceptHold 22")
 })
 
 test("startup retries keep app/workspace bindings without duplicating Escape or removing user binds", () => {

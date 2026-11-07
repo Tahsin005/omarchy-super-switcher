@@ -18,7 +18,8 @@ PanelWindow {
   id: root
 
   property bool active: false
-  // Map only after the compositor has isolated its mouse/keyboard bindings.
+  // A pending selection can cycle and activate without mapping the window.
+  property bool showRequested: false
   property bool inputReady: false
   property string mode: "apps"
   readonly property bool workspaceMode: root.mode === "workspaces"
@@ -66,11 +67,8 @@ PanelWindow {
   onKeyboardReadyChanged: if (root.keyboardReady) root.checkModifierReleased()
 
   function checkModifierReleased() {
-    if (!root.active) return
-    // A quick tap can release the modifier before IPC opens the window. No release
-    // event will reach us in that case. Once keyboard focus is established,
-    // query the compositor's key state to cover that gap without a delay.
-    // Later releases are handled by Keys.onReleased as usual.
+    if (!root.keyboardReady) return
+    // Recheck after the focus handoff, then on subsequent key releases.
     root.modifierQueryRevision++
     var command = SwitcherKeys.releaseCommand(root.heldModifierKeys, root.releaseGeneration,
       !root.workspaceMode, root.modifierQueryRevision)
@@ -83,6 +81,9 @@ PanelWindow {
       // Ignore a reply from a session that was canceled or already committed.
       if (root.active && generation === root.releaseGeneration) root.activateSelected()
     }
+    function acceptHold(generation: int): void {
+      if (root.active && generation === root.releaseGeneration) root.showRequested = true
+    }
     function acceptAppScope(generation: int, revision: int, currentWorkspaceOnly: bool): void {
       if (root.active && !root.workspaceMode && generation === root.releaseGeneration
           && revision === root.modifierQueryRevision)
@@ -90,20 +91,33 @@ PanelWindow {
     }
   }
 
+  function checkPendingHold() {
+    if (!root.active || root.showRequested || !root.heldModifierKeys.length || holdCheck.running) return
+    holdCheck.generation = root.releaseGeneration
+    holdCheck.command = ["hyprctl", "eval", SwitcherKeys.pendingCommand(root.heldModifierKeys, holdCheck.generation)]
+    holdCheck.running = true
+  }
+
+  Process {
+    id: holdCheck
+    property int generation: 0
+    onExited: function(exitCode, exitStatus) {
+      if (generation !== root.releaseGeneration) root.checkPendingHold()
+      else if (exitCode !== 0 || exitStatus !== 0) root.cancel()
+    }
+  }
+
   function open(list, initialIndex, heldKeys, mode) {
     pointerGate.reset()
     root.releaseGeneration++
+    root.showRequested = false
     root.mode = mode || "apps"
     root.heldModifierKeys = heldKeys || []
     root.apps = list || []
     root.selectedIndex = initialIndex >= 0 && initialIndex < root.apps.length ? initialIndex : 0
     root.active = true
-    Qt.callLater(function() {
-      if (!root.active) return
-      keyCatcher.forceActiveFocus()
-      // A new session can begin before the previous window loses focus.
-      if (root.keyboardReady) root.checkModifierReleased()
-    })
+    if (!root.heldModifierKeys.length) root.activateSelected()
+    else root.checkPendingHold()
   }
 
   function next() {
@@ -121,6 +135,7 @@ PanelWindow {
   function cancel() {
     root.releaseGeneration++
     root.active = false
+    root.showRequested = false
     root.apps = []
     root.selectedIndex = -1
   }
@@ -144,12 +159,13 @@ PanelWindow {
     root.quitRequested(root.apps[root.selectedIndex].id)
   }
 
-  visible: root.active && root.inputReady
+  visible: root.showRequested && root.inputReady
+  onVisibleChanged: if (root.visible) keyCatcher.forceActiveFocus()
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
   WlrLayershell.layer: WlrLayer.Overlay
   WlrLayershell.namespace: "harryxu-super-switcher"
-  WlrLayershell.keyboardFocus: root.active ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+  WlrLayershell.keyboardFocus: root.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
   anchors { top: true; bottom: true; left: true; right: true }
   mask: Region { item: switcherSurface }
 
@@ -184,8 +200,9 @@ PanelWindow {
       clip: root.naturalWidth > root.surfaceWidth
       boundsBehavior: Flickable.StopAtBounds
       keyNavigationEnabled: false
-      currentIndex: root.selectedIndex
-      model: root.apps
+      currentIndex: count > 0 ? root.selectedIndex : -1
+      // Do not instantiate icons or start workspace captures for a quick tap.
+      model: root.visible ? root.apps : []
 
       function revealSelection() {
         if (currentIndex >= 0 && currentIndex < count)

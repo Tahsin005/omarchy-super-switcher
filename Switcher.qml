@@ -34,10 +34,10 @@ Item {
   function syncSubmap() {
     // Serialize enter/leave commands. A rapid close/reopen must not let an
     // older leave command reset the new session's input mode.
-    if (!panel.active) panel.inputReady = false
+    if (!panel.showRequested) panel.inputReady = false
     if (submapControl.running) return
-    submapControl.entering = panel.active
-    submapControl.command = ["hyprctl", "eval", SwitcherKeys.submapCommand(panel.active)]
+    submapControl.entering = panel.showRequested
+    submapControl.command = ["hyprctl", "eval", SwitcherKeys.submapCommand(panel.showRequested)]
     submapControl.running = true
   }
 
@@ -318,7 +318,7 @@ Item {
     onWorkspaceActivated: function(workspaceId) { root.activateWorkspace(workspaceId) }
     onAppScopeChanged: function(currentWorkspaceOnly) { root.setAppScope(currentWorkspaceOnly) }
     onQuitRequested: function(appId) { root.quitApp(appId) }
-    onActiveChanged: root.syncSubmap()
+    onShowRequestedChanged: root.syncSubmap()
   }
 
   Process {
@@ -330,8 +330,8 @@ Item {
         if (panel.active) panel.cancel()
         return
       }
-      if (submapControl.entering !== panel.active) root.syncSubmap()
-      else if (panel.active) panel.inputReady = true
+      if (submapControl.entering !== panel.showRequested) root.syncSubmap()
+      else if (panel.showRequested) panel.inputReady = true
     }
   }
 

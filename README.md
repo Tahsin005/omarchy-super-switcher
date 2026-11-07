@@ -32,8 +32,9 @@ selection.
 | `Alt/Option + Shift + Tab` | Previous workspace |
 
 Hold Super or Alt/Option and press Tab repeatedly to move through the list.
-Release the modifier to activate the selection. Quick taps work even if you
-release the key before the panel gets keyboard focus.
+Release the modifier to activate the selection. A quick tap switches directly
+without opening the panel. After a 60 ms hold delay, the switcher opens if
+Super or Alt/Option is still held. Tab presses during the delay still move the selection.
 
 Arrow keys move the selection, Enter activates it, and Escape cancels. Moving
 the pointer over an item selects it; clicking activates it. Long names are
@@ -93,8 +94,8 @@ release it; Escape cancels the selection.
 ## Requirements
 
 Omarchy with Quickshell and Hyprland's Lua configuration API, including
-`hl.is_key_down`, `hl.define_submap`, `hl.get_current_submap`, `o.rebind`, and the
-`omarchy-shell` IPC command.
+`hl.is_key_down`, `hl.on`, `hl.timer`, `hl.define_submap`, `hl.get_current_submap`,
+`o.rebind`, and the `omarchy-shell` IPC command.
 
 ## Installation
 
@@ -168,8 +169,8 @@ omarchy-shell harryxu.super-switcher workspaceNext
 omarchy-shell harryxu.super-switcher workspacePrev
 ```
 
-A next/previous call made after its modifier has been released completes the
-switch once the panel gets focus. `altTabCancel` cancels either mode.
+A next/previous call made with no modifier held switches directly.
+`altTabCancel` cancels either mode, including during the hold delay.
 
 ## Tests
 
