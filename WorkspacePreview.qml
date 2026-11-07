@@ -10,6 +10,7 @@ Item {
   property var workspace: null
   property var iconSourceFor: function(window) { return "" }
   property bool selected: false
+  property bool live: false
   property real cornerRadius: 12
   readonly property var windows: workspace && workspace.toplevels ? workspace.toplevels.values : []
   readonly property var geometry: WorkspaceModel.monitorGeometry(workspace ? workspace.monitor : null)
@@ -58,7 +59,7 @@ Item {
           anchors.fill: parent
           anchors.margins: 1
           captureSource: windowTile.modelData ? windowTile.modelData.wayland : null
-          live: true
+          live: root.live
           paintCursor: false
         }
 

@@ -1,4 +1,5 @@
 import QtQuick
+import QtCore
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
@@ -17,6 +18,18 @@ Item {
   property bool currentWorkspaceAppsOnly: false
   property int appSessionWorkspaceId: 0
   property var quitRequests: []
+  property string workspacePreviewMode: "static"
+
+  FileView {
+    id: previewModeFile
+    path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/omarchy/super-switcher-preview-mode"
+    watchChanges: true
+    printErrors: false
+    blockWrites: true
+    onFileChanged: reload()
+    onLoaded: root.workspacePreviewMode = text().trim() === "live" ? "live" : "static"
+    onLoadFailed: root.workspacePreviewMode = "static"
+  }
 
   function syncSubmap() {
     // Serialize enter/leave commands. A rapid close/reopen must not let an
@@ -113,6 +126,7 @@ Item {
     var workspaces = root.workspaceEntries()
     if (!workspaces.length) return
     var current = Hyprland.focusedWorkspace
+    panel.workspaceLivePreview = root.workspacePreviewMode === "live"
     panel.open(workspaces, SwitcherModel.initialIndex(workspaces, current ? String(current.id) : "", step), heldKeys, "workspaces")
   }
 
@@ -233,6 +247,16 @@ Item {
     function workspaceCycleHeld(step: int, keycodes: string): void {
       var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
       if (heldKeys !== null) root.cycleWorkspaces(step, heldKeys)
+    }
+    function workspacePreviewMode(): string { return root.workspacePreviewMode }
+    function setWorkspacePreviewMode(mode: string): string {
+      if (mode !== "static" && mode !== "live") return "Expected static or live."
+      previewModeFile.setText(mode + "\n")
+      // Read back the saved value before reporting success to the caller.
+      previewModeFile.reload()
+      previewModeFile.waitForJob()
+      return previewModeFile.loaded && previewModeFile.text().trim() === mode
+        ? mode : "Could not save workspace preview mode."
     }
     function altTabCancel(): void { panel.cancel() }
   }

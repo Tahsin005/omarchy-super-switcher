@@ -105,6 +105,23 @@ Install and enable the plugin from
 omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enable
 ```
 
+## Workspace preview settings
+
+- **Static snapshot (`static`, default).** Each window preview captures one
+  frame when it appears and holds it while you browse.
+- **Live preview (`live`).** Window previews update as their contents change.
+
+Run these commands with the plugin enabled:
+
+```bash
+omarchy-shell harryxu.super-switcher workspacePreviewMode
+omarchy-shell harryxu.super-switcher setWorkspacePreviewMode live
+omarchy-shell harryxu.super-switcher setWorkspacePreviewMode static
+```
+
+The setting takes effect the next time you open the workspace switcher. It is
+saved in `${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/super-switcher-preview-mode`.
+
 ## Development installation
 
 Clone the repository and link it into the user plugin directory under its

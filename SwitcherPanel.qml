@@ -22,6 +22,7 @@ PanelWindow {
   property bool inputReady: false
   property string mode: "apps"
   readonly property bool workspaceMode: root.mode === "workspaces"
+  property bool workspaceLivePreview: false
   property var apps: []
   property int selectedIndex: -1
   property int releaseGeneration: 0
@@ -234,6 +235,7 @@ PanelWindow {
             workspace: entryTile.modelData ? entryTile.modelData.workspace || null : null
             iconSourceFor: root.windowIconSourceFor
             selected: root.selectedIndex === entryTile.index
+            live: root.workspaceLivePreview
           }
         }
 
