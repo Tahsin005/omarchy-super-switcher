@@ -28,6 +28,7 @@ selection.
 | --- | --- |
 | `Super + Tab` | Next application |
 | `Super + Shift + Tab` | Previous application |
+| Hold `A` while using `Super + Tab` or `Super + Shift + Tab` | Cycle through only applications with windows on the current workspace |
 | `Alt/Option + Tab` | Next workspace |
 | `Alt/Option + Shift + Tab` | Previous workspace |
 
