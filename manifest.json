@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "harryxu.super-switcher",
-  "name": "macOS App Switcher",
+  "name": "Omarchy Super Switcher",
   "version": "0.2.0",
   "author": "ifubaraboye",
   "description": "A macOS-style Super+Tab app switcher and Alt+Tab workspace switcher with previews and release-to-activate navigation.",
