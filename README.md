@@ -2,7 +2,7 @@
 
 A macOS-style app, window, and workspace switcher for Omarchy.
 
-https://github.com/user-attachments/assets/5a026d2b-4dac-4446-a000-4bce0149243b
+https://github.com/user-attachments/assets/e7e3ffde-b8e6-4135-ad40-71d9cadf977b
 
 ## Installation
 
