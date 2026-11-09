@@ -21,6 +21,7 @@ PanelWindow {
   readonly property bool appMode: root.mode === "apps"
   readonly property bool windowMode: root.mode === "windows"
   readonly property bool workspaceMode: root.mode === "workspaces"
+  property var windowApp: null
   property bool workspaceLivePreview: false
   property var apps: []
   property int selectedIndex: -1
@@ -40,7 +41,7 @@ PanelWindow {
   property int slotSpacing: root.appMode ? 12 : 16
   property int sidePadding: 24
   readonly property real rowHeight: root.appMode ? root.iconSize : root.slotWidth * 10 / 16 + 40
-  readonly property real surfaceHeight: root.rowHeight + 2 * root.verticalPadding
+  readonly property real surfaceHeight: root.rowHeight + 2 * root.verticalPadding + root.windowHeaderHeight
   property int surfaceRadius: root.appMode ? 36 : 28
   property int selectionRadius: 20
   property int screenMargin: 32
@@ -48,6 +49,8 @@ PanelWindow {
   property int verticalPadding: root.appMode ? 32 : 24
   property int labelHeight: 24
   property int labelMargin: 12
+  readonly property int labelFontSize: 13
+  readonly property int windowHeaderHeight: root.windowMode && root.windowApp ? root.labelHeight : 0
 
   signal activated(string appId, string appName)
   signal windowActivated(string address)
@@ -191,10 +194,44 @@ PanelWindow {
     border.width: 1
     opacity: root.active ? 1 : 0.96
 
+    Loader {
+      active: root.visible && root.windowHeaderHeight > 0
+      anchors.horizontalCenter: parent.horizontalCenter
+      y: root.verticalPadding / 2
+      height: root.windowHeaderHeight
+
+      sourceComponent: Row {
+        id: appHeader
+        spacing: 6
+
+        SwitcherIcon {
+          id: headerIcon
+          anchors.verticalCenter: parent.verticalCenter
+          width: root.labelFontSize
+          height: width
+          artworkSize: width
+          source: root.windowApp ? root.iconSource(root.windowApp) : ""
+        }
+
+        Text {
+          width: Math.min(implicitWidth, Math.max(0, switcherSurface.width - 2 * root.sidePadding - headerIcon.width - appHeader.spacing))
+          height: appHeader.height
+          text: root.windowApp ? String(root.windowApp.name || root.windowApp.id || "") : ""
+          textFormat: Text.PlainText
+          verticalAlignment: Text.AlignVCenter
+          elide: Text.ElideRight
+          color: Commons.Color.foreground
+          font.family: Commons.Style.fontFamily
+          font.pixelSize: root.labelFontSize
+          font.weight: Font.DemiBold
+        }
+      }
+    }
+
     ListView {
       id: appRow
       anchors.horizontalCenter: parent.horizontalCenter
-      y: root.verticalPadding
+      y: root.verticalPadding + root.windowHeaderHeight
       width: Math.max(0, parent.width - 2 * root.sidePadding)
       height: root.rowHeight
       orientation: ListView.Horizontal
@@ -288,7 +325,7 @@ PanelWindow {
           maximumLineCount: 1
           color: Commons.Color.foreground
           font.family: Commons.Style.fontFamily
-          font.pixelSize: 13
+          font.pixelSize: root.labelFontSize
           font.weight: entryTile.selected ? Font.DemiBold : Font.Medium
         }
 
@@ -334,7 +371,7 @@ PanelWindow {
       maximumLineCount: 1
       color: Commons.Color.foreground
       font.family: Commons.Style.fontFamily
-      font.pixelSize: 13
+      font.pixelSize: root.labelFontSize
       font.weight: Font.Medium
     }
 

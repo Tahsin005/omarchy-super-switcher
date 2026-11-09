@@ -20,7 +20,7 @@ Item {
   property string pendingCursorPosition: ""
   property bool currentWorkspaceAppsOnly: false
   property int appSessionWorkspaceId: 0
-  property string windowSessionAppId: ""
+  property var windowSessionApp: null
   property var quitRequests: []
   property string workspacePreviewMode: "static"
 
@@ -125,13 +125,13 @@ Item {
     var app = SwitcherModel.appForWindow(current, entries)
     var windows = SwitcherModel.buildWindows(Hyprland.toplevels.values || [], entries, app ? app.id : "")
     if (windows.length < 2) { panel.cancel(); return }
-    root.windowSessionAppId = app.id
+    root.windowSessionApp = app
     panel.open(windows, SwitcherModel.initialIndex(windows, current.address, step), heldKeys, "windows")
   }
 
   function refreshWindows() {
     if (!panel.active || !panel.windowMode) return
-    var windows = SwitcherModel.buildWindows(Hyprland.toplevels.values || [], root.appEntries(), root.windowSessionAppId)
+    var windows = SwitcherModel.buildWindows(Hyprland.toplevels.values || [], root.appEntries(), root.windowSessionApp.id)
     if (windows.length < 2) { panel.cancel(); return }
     if (windows.length === panel.apps.length && windows.every(function(entry, index) {
       return entry.window === panel.apps[index].window
@@ -347,6 +347,7 @@ Item {
   SwitcherPanel {
     id: panel
     screen: root.focusedScreen()
+    windowApp: root.windowSessionApp
     iconSourceFor: function(app) { return root.iconSource(app) }
     windowIconSourceFor: function(window) {
       var app = SwitcherModel.appForWindow(window, root.appEntries())
