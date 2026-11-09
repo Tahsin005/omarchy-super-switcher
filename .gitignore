@@ -4,3 +4,4 @@
 .qmlcache/
 __pycache__/
 *.log
+/AGENTS.md
