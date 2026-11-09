@@ -20,6 +20,7 @@ Item {
   property string pendingCursorPosition: ""
   property bool currentWorkspaceAppsOnly: false
   property int appSessionWorkspaceId: 0
+  property string windowSessionAppId: ""
   property var quitRequests: []
   property string workspacePreviewMode: "static"
 
@@ -57,7 +58,7 @@ Item {
   }
 
   function refreshApps() {
-    if (!panel.active || panel.workspaceMode) return
+    if (!panel.active || !panel.appMode) return
     var selected = panel.apps[panel.selectedIndex]
     var apps = root.sessionApps()
     if (!apps.length) { panel.cancel(); return }
@@ -67,7 +68,7 @@ Item {
   }
 
   function setAppScope(currentWorkspaceOnly) {
-    if (!panel.active || panel.workspaceMode || root.currentWorkspaceAppsOnly === currentWorkspaceOnly) return
+    if (!panel.active || !panel.appMode || root.currentWorkspaceAppsOnly === currentWorkspaceOnly) return
     if (currentWorkspaceOnly)
       root.appSessionWorkspaceId = Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
     root.currentWorkspaceAppsOnly = currentWorkspaceOnly
@@ -99,7 +100,7 @@ Item {
   }
 
   function cycle(step, heldKeys, currentWorkspaceOnly) {
-    if (panel.active && !panel.workspaceMode) {
+    if (panel.active && panel.appMode) {
       root.setAppScope(!!currentWorkspaceOnly)
       if (!panel.active) return
       if (step > 0) panel.next(); else panel.prev()
@@ -112,6 +113,33 @@ Item {
     if (!apps.length) { panel.cancel(); return }
     var current = SwitcherModel.appForWindow(Hyprland.activeToplevel, root.appEntries())
     panel.open(apps, SwitcherModel.initialIndex(apps, current ? current.id : "", step), heldKeys, "apps")
+  }
+
+  function cycleWindows(step, heldKeys) {
+    if (panel.active && panel.windowMode) {
+      if (step > 0) panel.next(); else panel.prev()
+      return
+    }
+    var current = Hyprland.activeToplevel
+    var entries = root.appEntries()
+    var app = SwitcherModel.appForWindow(current, entries)
+    var windows = SwitcherModel.buildWindows(Hyprland.toplevels.values || [], entries, app ? app.id : "")
+    if (windows.length < 2) { panel.cancel(); return }
+    root.windowSessionAppId = app.id
+    panel.open(windows, SwitcherModel.initialIndex(windows, current.address, step), heldKeys, "windows")
+  }
+
+  function refreshWindows() {
+    if (!panel.active || !panel.windowMode) return
+    var windows = SwitcherModel.buildWindows(Hyprland.toplevels.values || [], root.appEntries(), root.windowSessionAppId)
+    if (windows.length < 2) { panel.cancel(); return }
+    if (windows.length === panel.apps.length && windows.every(function(entry, index) {
+      return entry.window === panel.apps[index].window
+    })) return
+    var selected = panel.apps[panel.selectedIndex]
+    var index = SwitcherModel.selectionIndex(windows, selected ? selected.id : "", panel.selectedIndex)
+    panel.apps = windows
+    panel.selectedIndex = index
   }
 
   function workspaceEntries() {
@@ -246,6 +274,10 @@ Item {
       var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
       if (heldKeys !== null) root.cycle(step, heldKeys, true)
     }
+    function windowCycleHeld(step: int, keycodes: string): void {
+      var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
+      if (heldKeys !== null) root.cycleWindows(step, heldKeys)
+    }
     function workspaceNext(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(1, "workspaces")]) }
     function workspacePrev(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(-1, "workspaces")]) }
     function workspaceCycleHeld(step: int, keycodes: string): void {
@@ -262,7 +294,7 @@ Item {
       return previewModeFile.loaded && previewModeFile.text().trim() === mode
         ? mode : "Could not save workspace preview mode."
     }
-    // Both switchers share this IPC command, including during the hold delay.
+    // All switchers share this IPC command, including during the hold delay.
     function altTabCancel(): void { panel.cancel() }
   }
 
@@ -270,7 +302,7 @@ Item {
     target: Hyprland
     function onActiveToplevelChanged() { root.rememberFocus() }
     function onFocusedWorkspaceChanged() {
-      if (panel.active && !panel.workspaceMode && root.currentWorkspaceAppsOnly
+      if (panel.active && panel.appMode && root.currentWorkspaceAppsOnly
           && (!Hyprland.focusedWorkspace || Hyprland.focusedWorkspace.id !== root.appSessionWorkspaceId))
         panel.cancel()
     }
@@ -303,6 +335,7 @@ Item {
         return false
       })
       root.refreshApps()
+      root.refreshWindows()
     }
   }
 
@@ -320,6 +353,7 @@ Item {
       return root.iconSource(app || { id: "", icon: "" })
     }
     onActivated: function(appId) { root.activateApp(appId) }
+    onWindowActivated: function(address) { root.activateWindow(address, null) }
     onWorkspaceActivated: function(workspaceId) { root.activateWorkspace(workspaceId) }
     onAppScopeChanged: function(currentWorkspaceOnly) { root.setAppScope(currentWorkspaceOnly) }
     onQuitRequested: function(appId) { root.quitApp(appId) }

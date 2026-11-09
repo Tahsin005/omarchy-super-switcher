@@ -217,7 +217,7 @@ test("a new pending session replaces the old modifier check and deadline", () =>
   `, [64, 133]), "omarchy-shell -q harryxu.super-switcher.switcher acceptHold 22")
 })
 
-test("startup retries keep app/workspace bindings without duplicating Escape or removing user binds", () => {
+test("startup retries keep switcher bindings without duplicating Escape or removing user binds", () => {
   lua(`
     hl.bind("Escape", function() end)
     hl.bind("SUPER + mouse:272", function() end, {mouse = true})
@@ -226,7 +226,7 @@ test("startup retries keep app/workspace bindings without duplicating Escape or 
     ${keys.bindingCommand()}
     ${keys.bindingCommand()}
     ${keys.bindingCommand()}
-    assert(#bindings == 13, "Expected 4 user bindings and 9 switcher bindings")
+    assert(#bindings == 17, "Expected 4 user bindings and 13 switcher bindings")
     local counts = {}
     for _, binding in ipairs(bindings) do
       local key = binding.submap .. ":" .. binding.chord
@@ -239,12 +239,23 @@ test("startup retries keep app/workspace bindings without duplicating Escape or 
     for _, map in ipairs({"", "${keys.submapName}"}) do
       assert(counts[map .. ":SUPER + TAB"] == 1)
       assert(counts[map .. ":SUPER + SHIFT + TAB"] == 1)
+      assert(counts[map .. ":SUPER + grave"] == 1)
+      assert(counts[map .. ":SUPER + SHIFT + grave"] == 1)
       assert(counts[map .. ":ALT + TAB"] == 1)
       assert(counts[map .. ":ALT + SHIFT + TAB"] == 1)
     end
     assert(counts[":Escape"] == 1 and counts["user-mode:Escape"] == 1)
     assert(counts["${keys.submapName}:Escape"] == 1)
   `)
+})
+
+test("window shortcuts cycle in both submaps and ignore the app scope key", () => {
+  for (const [chord, step] of [["SUPER + grave", 1], ["SUPER + SHIFT + grave", -1]]) {
+    for (const submap of ["", keys.submapName]) {
+      assert.equal(lua(`${keys.bindingCommand()} invoke("${chord}", "${submap}")`, [64, "a", 49]),
+        `omarchy-shell -q harryxu.super-switcher windowCycleHeld ${step} 64`)
+    }
+  }
 })
 
 test("workspace shortcuts track Option and remapped Win positions through release in both submaps", () => {

@@ -9,25 +9,26 @@ import os
 import subprocess
 import time
 
-EXPECTED = {64: 'App switcher next', 65: 'App switcher prev',
-            8: 'Workspace switcher next', 9: 'Workspace switcher prev'}
+EXPECTED = {('TAB', 64): 'App switcher next', ('TAB', 65): 'App switcher prev',
+            ('GRAVE', 64): 'Window switcher next', ('GRAVE', 65): 'Window switcher prev',
+            ('TAB', 8): 'Workspace switcher next', ('TAB', 9): 'Workspace switcher prev'}
 SUBMAP = 'harryxu-super-switcher'
 
 
 def bindings():
     result = subprocess.check_output(['hyprctl', '-j', 'binds'], text=True)
     return [binding for binding in json.loads(result)
-            if binding['key'].upper() == 'TAB' and binding['modmask'] in EXPECTED]
+            if (binding['key'].upper(), binding['modmask']) in EXPECTED]
 
 
 def check_bindings():
     current = bindings()
     return all(len([binding for binding in current
-                    if binding['modmask'] == mask
+                    if (binding['key'].upper(), binding['modmask']) == chord
                     and binding.get('description') == description
                     and binding.get('submap', '') == submap]) == 1
                for submap in ('', SUBMAP)
-               for mask, description in EXPECTED.items()) and len(current) == 2 * len(EXPECTED)
+               for chord, description in EXPECTED.items()) and len(current) == 2 * len(EXPECTED)
 
 
 def main():
@@ -47,8 +48,8 @@ def main():
                 break
             time.sleep(0.1)
         else:
-            descriptions = [(binding['modmask'], binding.get('description')) for binding in bindings()]
-            raise AssertionError(f'Super+Tab stopped invoking the switcher after reload: {descriptions}')
+            descriptions = [(binding['key'], binding['modmask'], binding.get('description')) for binding in bindings()]
+            raise AssertionError(f'Switcher bindings did not recover after reload: {descriptions}')
 
 
 if __name__ == '__main__':

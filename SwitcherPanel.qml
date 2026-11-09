@@ -6,14 +6,10 @@ import qs.Commons as Commons
 import qs.Ui as Ui
 import "SwitcherKeys.js" as SwitcherKeys
 
-// Shared application/workspace switcher. Both modes use the same input grab
-// and physical-modifier release tracking.
+// All modes share the same input grab and physical-modifier release tracking.
 //
-// Keyboard contract: Hyprland consumes SUPER/ALT+TAB global/submap binds, so
-// the bound key never reaches
-// this window. While visible it grabs the keyboard exclusively and receives
-// the unbound keys: modifier release activates, Escape cancels, Enter activates,
-// arrows move the selection.
+// Hyprland consumes the global/submap cycle bindings. While visible, the panel
+// grabs the keyboard for modifier release, Escape, Enter, and arrow keys.
 PanelWindow {
   id: root
 
@@ -22,6 +18,8 @@ PanelWindow {
   property bool showRequested: false
   property bool inputReady: false
   property string mode: "apps"
+  readonly property bool appMode: root.mode === "apps"
+  readonly property bool windowMode: root.mode === "windows"
   readonly property bool workspaceMode: root.mode === "workspaces"
   property bool workspaceLivePreview: false
   property var apps: []
@@ -35,23 +33,24 @@ PanelWindow {
   property var iconSourceFor: function(app) { return "" }
   property var windowIconSourceFor: function(window) { return "" }
 
-  // Application icons in a centered, fixed-spacing row.
+  // Icons and previews use the same centered row, with wider slots for previews.
   readonly property int iconSize: root.slotWidth
   property int artworkSize: 84
-  property int slotWidth: root.workspaceMode ? Math.min(256, Math.max(1, root.width - 2 * (root.screenMargin + root.sidePadding))) : 96
-  property int slotSpacing: root.workspaceMode ? 16 : 12
+  property int slotWidth: root.appMode ? 96 : Math.min(256, Math.max(1, root.width - 2 * (root.screenMargin + root.sidePadding)))
+  property int slotSpacing: root.appMode ? 12 : 16
   property int sidePadding: 24
-  readonly property real rowHeight: root.workspaceMode ? root.slotWidth * 10 / 16 + 40 : root.iconSize
+  readonly property real rowHeight: root.appMode ? root.iconSize : root.slotWidth * 10 / 16 + 40
   readonly property real surfaceHeight: root.rowHeight + 2 * root.verticalPadding
-  property int surfaceRadius: root.workspaceMode ? 28 : 36
+  property int surfaceRadius: root.appMode ? 36 : 28
   property int selectionRadius: 20
   property int screenMargin: 32
   // Equal space above and below the icons; the name lives in the lower inset.
-  property int verticalPadding: root.workspaceMode ? 24 : 32
+  property int verticalPadding: root.appMode ? 32 : 24
   property int labelHeight: 24
   property int labelMargin: 12
 
   signal activated(string appId, string appName)
+  signal windowActivated(string address)
   signal workspaceActivated(string workspaceId)
   signal appScopeChanged(bool currentWorkspaceOnly)
   signal quitRequested(string appId)
@@ -71,7 +70,7 @@ PanelWindow {
     // Recheck after the focus handoff, then on subsequent key releases.
     root.modifierQueryRevision++
     var command = SwitcherKeys.releaseCommand(root.heldModifierKeys, root.releaseGeneration,
-      !root.workspaceMode, root.modifierQueryRevision)
+      root.appMode, root.modifierQueryRevision)
     Quickshell.execDetached(["hyprctl", "eval", command])
   }
 
@@ -85,7 +84,7 @@ PanelWindow {
       if (root.active && generation === root.releaseGeneration) root.showRequested = true
     }
     function acceptAppScope(generation: int, revision: int, currentWorkspaceOnly: bool): void {
-      if (root.active && !root.workspaceMode && generation === root.releaseGeneration
+      if (root.active && root.appMode && generation === root.releaseGeneration
           && revision === root.modifierQueryRevision)
         root.appScopeChanged(currentWorkspaceOnly)
     }
@@ -150,14 +149,15 @@ PanelWindow {
     var app = root.apps[root.selectedIndex]
     var id = app.id
     var name = app.name
-    var workspace = root.workspaceMode
+    var mode = root.mode
     root.cancel()
-    if (workspace) root.workspaceActivated(id)
+    if (mode === "workspaces") root.workspaceActivated(id)
+    else if (mode === "windows") root.windowActivated(id)
     else root.activated(id, name)
   }
 
   function quitSelected() {
-    if (!root.active || root.workspaceMode || root.selectedIndex < 0 || root.selectedIndex >= root.apps.length) return
+    if (!root.active || !root.appMode || root.selectedIndex < 0 || root.selectedIndex >= root.apps.length) return
     root.quitRequested(root.apps[root.selectedIndex].id)
   }
 
@@ -186,7 +186,7 @@ PanelWindow {
     width: root.surfaceWidth
     height: root.surfaceHeight
     radius: root.surfaceRadius
-    color: Commons.Util.alpha(Commons.Color.background, root.workspaceMode ? 0.97 : 0.88)
+    color: Commons.Util.alpha(Commons.Color.background, root.appMode ? 0.88 : 0.97)
     border.color: Commons.Util.alpha(Commons.Color.foreground, 0.20)
     border.width: 1
     opacity: root.active ? 1 : 0.96
@@ -203,7 +203,7 @@ PanelWindow {
       boundsBehavior: Flickable.StopAtBounds
       keyNavigationEnabled: false
       currentIndex: count > 0 ? root.selectedIndex : -1
-      // Do not instantiate icons or start workspace captures for a quick tap.
+      // Do not instantiate icons or start captures for a quick tap.
       model: root.visible ? root.apps : []
 
       function revealSelection() {
@@ -218,20 +218,22 @@ PanelWindow {
         id: entryTile
         required property var modelData
         required property int index
+        readonly property bool selected: root.selectedIndex === entryTile.index
+        readonly property var window: root.windowMode && entryTile.modelData ? entryTile.modelData.window : null
 
         width: root.slotWidth
         height: root.rowHeight
 
-        // Highlight the application selected by keyboard or pointer.
+        // Highlight the entry selected by keyboard or pointer.
         Rectangle {
           anchors.centerIn: parent
           width: root.slotWidth
           height: root.rowHeight
-          radius: root.workspaceMode ? 16 : root.selectionRadius
-          color: Commons.Util.alpha(Commons.Color.accent, root.workspaceMode ? 0.08 : 0.28)
+          radius: root.appMode ? root.selectionRadius : 16
+          color: Commons.Util.alpha(Commons.Color.accent, root.appMode ? 0.28 : 0.08)
           border.color: Commons.Util.alpha(Commons.Color.accent, 0.40)
-          border.width: root.workspaceMode ? 0 : 2
-          visible: root.selectedIndex === index
+          border.width: root.appMode ? 2 : 0
+          visible: entryTile.selected
         }
 
         SwitcherIcon {
@@ -239,32 +241,46 @@ PanelWindow {
           anchors.verticalCenter: parent.verticalCenter
           width: root.iconSize
           height: root.iconSize
-          source: root.workspaceMode ? "" : root.iconSource(modelData)
+          source: root.appMode ? root.iconSource(modelData) : ""
           artworkSize: root.artworkSize
-          visible: !root.workspaceMode
+          visible: root.appMode
         }
 
         Loader {
-          active: root.workspaceMode
+          active: !root.appMode
           x: 8
           y: 8
           width: parent.width - 16
           height: parent.height - 44
-          sourceComponent: WorkspacePreview {
+          sourceComponent: root.windowMode ? windowPreview : workspacePreview
+        }
+
+        Component {
+          id: workspacePreview
+          WorkspacePreview {
             workspace: entryTile.modelData ? entryTile.modelData.workspace || null : null
             iconSourceFor: root.windowIconSourceFor
-            selected: root.selectedIndex === entryTile.index
+            selected: entryTile.selected
             live: root.workspaceLivePreview
           }
         }
 
+        Component {
+          id: windowPreview
+          WindowPreview {
+            window: entryTile.window
+            selected: entryTile.selected
+          }
+        }
+
         Text {
-          visible: root.workspaceMode
+          readonly property var entry: entryTile.modelData
+          visible: root.workspaceMode || (root.windowMode && entryTile.selected)
           x: 8
           y: parent.height - 32
           width: parent.width - 16
           height: 24
-          text: entryTile.modelData ? String(entryTile.modelData.name || entryTile.modelData.id || "") : ""
+          text: (entryTile.window ? entryTile.window.title : "") || (entry ? String(entry.name || entry.id || "") : "")
           textFormat: Text.PlainText
           horizontalAlignment: Text.AlignHCenter
           verticalAlignment: Text.AlignVCenter
@@ -273,7 +289,7 @@ PanelWindow {
           color: Commons.Color.foreground
           font.family: Commons.Style.fontFamily
           font.pixelSize: 13
-          font.weight: root.selectedIndex === entryTile.index ? Font.DemiBold : Font.Medium
+          font.weight: entryTile.selected ? Font.DemiBold : Font.Medium
         }
 
         MouseArea {
@@ -305,7 +321,7 @@ PanelWindow {
       readonly property real iconCenter: appRow.x + (appRow.currentItem ? appRow.currentItem.x + root.slotWidth / 2 - appRow.contentX : appRow.width / 2)
       text: app ? String(app.name || app.id || "") : ""
       textFormat: Text.PlainText
-      visible: !root.workspaceMode && !!app && !!appRow.currentItem
+      visible: root.appMode && !!app && !!appRow.currentItem
       // Keep the name centered under its icon, including while the row scrolls.
       // At either edge, shorten long names rather than spilling out of the panel.
       width: Math.max(0, Math.min(200, 2 * Math.min(iconCenter - root.labelMargin, switcherSurface.width - root.labelMargin - iconCenter)))
@@ -333,7 +349,7 @@ PanelWindow {
           if (!event.isAutoRepeat) root.quitSelected()
           event.accepted = true; return
         }
-        if (event.key === Qt.Key_A && !root.workspaceMode) {
+        if (event.key === Qt.Key_A && root.appMode) {
           if (!event.isAutoRepeat) {
             root.modifierQueryRevision++
             root.appScopeChanged(true)

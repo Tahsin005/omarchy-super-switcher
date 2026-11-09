@@ -33,6 +33,27 @@ test("orders applications and their windows by recent focus", () => {
   assert.deepEqual(apps[1].addresses, ["0x3", "0x1"])
 })
 
+test("window cycling keeps a stable order for the focused app across workspaces", () => {
+  const first = window("0x1", "code", { workspace: { id: 1 } })
+  const second = window("0x2", "CODE", { workspace: { id: 2 } })
+  const third = { address: "0x3", lastIpcObject: { class: "code" } }
+  const windows = [first, window("0x4", "Nautilus"), second,
+    window("0x5", "code", { mapped: false }), third]
+  const matches = model.buildWindows(windows, entries, "Code.desktop")
+  assert.deepEqual(plain(matches.map(entry => entry.id)), ["0x1", "0x2", "0x3"])
+  assert.equal(matches[1].window, second)
+  assert.deepEqual(plain(model.buildWindows(windows, entries, "")), [])
+  for (const step of [1, -1]) {
+    let current = first.address
+    const visited = []
+    for (let i = 0; i < matches.length; i++) {
+      current = matches[model.initialIndex(matches, current, step)].id
+      visited.push(current)
+    }
+    assert.deepEqual(visited, step === 1 ? ["0x2", "0x3", "0x1"] : ["0x3", "0x2", "0x1"])
+  }
+})
+
 test("workspace filtering runs before app grouping and MRU selection", () => {
   const windows = [
     window("0x1", "code", { workspace: { id: 1 } }),

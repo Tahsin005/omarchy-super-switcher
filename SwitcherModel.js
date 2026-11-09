@@ -90,6 +90,21 @@ function buildApps(windows, entries, history, workspaceId) {
     return apps
 }
 
+function buildWindows(windows, entries, appId) {
+    var id = normalizeId(appId).toLowerCase()
+    var matches = []
+    if (!id) return matches
+    // Keep compositor model order so separate quick taps can cycle past two windows.
+    for (var i = 0; i < windows.length; i++) {
+        var window = windows[i]
+        if (!window || !window.address || (window.lastIpcObject || {}).mapped === false) continue
+        var app = appForWindow(window, entries)
+        if (app && app.id.toLowerCase() === id)
+            matches.push({ id: window.address, name: app.name, window: window })
+    }
+    return matches
+}
+
 function quitPlan(windows, entries, appId, originalAddresses) {
     var id = normalizeId(appId).toLowerCase()
     var matches = []
@@ -147,6 +162,7 @@ if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         appForWindow: appForWindow,
         buildApps: buildApps,
+        buildWindows: buildWindows,
         entryFor: entryFor,
         iconName: iconName,
         initialIndex: initialIndex,

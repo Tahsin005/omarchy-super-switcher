@@ -1,6 +1,6 @@
 # Omarchy Super Switcher
 
-A macOS-style app and workspace switcher for Omarchy.
+A macOS-style app, window, and workspace switcher for Omarchy.
 
 https://github.com/user-attachments/assets/5a026d2b-4dac-4446-a000-4bce0149243b
 
@@ -14,9 +14,9 @@ later with its Lua configuration API. The plugin uses the `omarchy-shell` and
 omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enable
 ```
 
-Enabling the plugin automatically takes over `Super + Tab`, `Alt + Tab`, and
-their Shift variants for the current Hyprland session. Installation requires
-no additional setup or edits to your Hyprland configuration files.
+Enabling the plugin automatically takes over `Super + Tab`, `` Super + ` ``,
+`Alt + Tab`, and their Shift variants for the current Hyprland session.
+Installation requires no additional setup or edits to your Hyprland configuration files.
 
 ## Keyboard and mouse
 
@@ -24,6 +24,8 @@ no additional setup or edits to your Hyprland configuration files.
 | --- | --- |
 | `Super + Tab` | Next app |
 | `Super + Shift + Tab` | Previous app |
+| `` Super + ` `` | Next window of the focused app |
+| `` Super + Shift + ` `` | Previous window of the focused app |
 | Hold `A` with `Super + Tab` or `Super + Shift + Tab` | Show only apps with windows on the current workspace |
 | `Alt/Option + Tab` | Next workspace |
 | `Alt/Option + Shift + Tab` | Previous workspace |
@@ -32,8 +34,8 @@ no additional setup or edits to your Hyprland configuration files.
 | `Escape` | Cancel |
 | `Q` in the app switcher | Ask the selected app to close all its windows across workspaces |
 
-Hold Super or Alt/Option and press Tab to browse. Release the modifier to
-activate your selection. A quick tap switches without opening the panel.
+Keep Super or Alt/Option held after pressing the shortcut to browse. Release the
+modifier to activate your selection. A quick tap switches without opening the panel.
 
 You can also hold `A` after the app switcher opens. Keep it held to switch to a
 window on the current workspace. Release `A` to see all apps again.
@@ -54,6 +56,12 @@ If `Q` brings up a save dialog, the switcher closes and focuses it.
 
 The switcher lists each running app once, most recently used first. Switching
 to an app focuses its most recently used window.
+
+## Windows
+
+The window switcher cycles through the focused app's windows across workspaces.
+Keep holding Super to see still previews with the selected window's title below
+its thumbnail. The panel only opens when the app has at least two windows.
 
 ## Workspaces
 

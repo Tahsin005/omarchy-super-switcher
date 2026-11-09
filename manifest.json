@@ -4,7 +4,7 @@
   "name": "Omarchy Super Switcher",
   "version": "0.2.0",
   "author": "harryxu",
-  "description": "A macOS-style Super+Tab app switcher and Alt+Tab workspace switcher with previews and release-to-activate navigation.",
+  "description": "A macOS-style app, window, and workspace switcher with previews and release-to-activate navigation.",
   "kinds": [
     "panel"
   ],

@@ -7,12 +7,13 @@ var holdThresholdMs = 60
 // Capture physical Alt/Win positions before the IPC handoff. Hyprland's keysym
 // query can use the global keymap and miss a per-device altwin:swap_alt_win mapping.
 function cycleCommand(step, mode) {
+  var method = mode === "workspaces" ? '"workspaceCycleHeld"'
+    : mode === "windows" ? '"windowCycleHeld"'
+    : '(hl.is_key_down("a") or hl.is_key_down("A")) and "localCycleHeld" or "cycleHeld"'
   return "local held = {} "
     + "for _, code in ipairs({64, 108, 133, 134}) do "
     + "if hl.is_key_down(code) then table.insert(held, code) end end "
-    + (mode === "workspaces"
-      ? "local method = \"workspaceCycleHeld\" "
-      : "local method = (hl.is_key_down(\"a\") or hl.is_key_down(\"A\")) and \"localCycleHeld\" or \"cycleHeld\" ")
+    + "local method = " + method + " "
     + "hl.exec_cmd(\"omarchy-shell -q harryxu.super-switcher \" .. method .. \" "
     + (step < 0 ? "-1" : "1") + " \" .. (#held > 0 and table.concat(held, \",\") or \"none\"))"
 }
@@ -25,6 +26,8 @@ function bindingCommand() {
   var shortcuts = [
     ["SUPER + TAB", "App switcher next", 1, "apps"],
     ["SUPER + SHIFT + TAB", "App switcher prev", -1, "apps"],
+    ["SUPER + grave", "Window switcher next", 1, "windows"],
+    ["SUPER + SHIFT + grave", "Window switcher prev", -1, "windows"],
     ["ALT + TAB", "Workspace switcher next", 1, "workspaces"],
     ["ALT + SHIFT + TAB", "Workspace switcher prev", -1, "workspaces"]
   ]
