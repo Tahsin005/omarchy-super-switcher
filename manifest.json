@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "harryxu.super-switcher",
   "name": "Omarchy Super Switcher",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "harryxu",
   "description": "A macOS-style app, window, and workspace switcher with previews and release-to-activate navigation.",
   "kinds": [
