@@ -7,8 +7,8 @@ https://github.com/user-attachments/assets/e7e3ffde-b8e6-4135-ad40-71d9cadf977b
 ## Installation
 
 Requires Omarchy with the Quickshell-based Omarchy shell and Hyprland 0.56 or
-later with its Lua configuration API. The plugin uses the `omarchy-shell` and
-`hyprctl` commands provided by Omarchy and Hyprland.
+later with its Lua configuration API. The plugin uses `omarchy-shell`, `hyprctl`,
+and the `timeout` command from GNU coreutils.
 
 ```bash
 omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enable

@@ -27,6 +27,7 @@ PanelWindow {
   property int selectedIndex: -1
   property int releaseGeneration: 0
   property int modifierQueryRevision: 0
+  property bool modifierQueryPending: false
   property var heldModifierKeys: []
   readonly property bool keyboardReady: root.active && root.inputReady && keyCatcher.activeFocus && keyCatcher.Window.active
   readonly property real naturalWidth: root.apps.length ? root.apps.length * root.slotWidth + (root.apps.length - 1) * root.slotSpacing + 2 * root.sidePadding : 0
@@ -67,14 +68,35 @@ PanelWindow {
   }
 
   onKeyboardReadyChanged: if (root.keyboardReady) root.checkModifierReleased()
+  onReleaseGenerationChanged: root.modifierQueryPending = false
 
   function checkModifierReleased() {
     if (!root.keyboardReady) return
     // Recheck after the focus handoff, then on subsequent key releases.
     root.modifierQueryRevision++
-    var command = SwitcherKeys.releaseCommand(root.heldModifierKeys, root.releaseGeneration,
-      root.appMode, root.modifierQueryRevision)
-    Quickshell.execDetached(["hyprctl", "eval", command])
+    if (releaseCheck.running) root.modifierQueryPending = true
+    else root.startModifierQuery()
+  }
+
+  function startModifierQuery() {
+    root.modifierQueryPending = false
+    if (!root.keyboardReady) return
+    releaseCheck.generation = root.releaseGeneration
+    releaseCheck.command = ["hyprctl", "eval", SwitcherKeys.releaseCommand(root.heldModifierKeys,
+      releaseCheck.generation, root.appMode, root.modifierQueryRevision)]
+    releaseCheck.running = true
+  }
+
+  HyprlandProcess {
+    id: releaseCheck
+    property int generation: 0
+    onExited: function(exitCode, exitStatus) {
+      if (generation === root.releaseGeneration && (exitCode !== 0 || exitStatus !== 0)) {
+        root.cancel()
+      } else if (root.modifierQueryPending) {
+        root.startModifierQuery()
+      }
+    }
   }
 
   IpcHandler {
@@ -100,7 +122,7 @@ PanelWindow {
     holdCheck.running = true
   }
 
-  Process {
+  HyprlandProcess {
     id: holdCheck
     property int generation: 0
     onExited: function(exitCode, exitStatus) {

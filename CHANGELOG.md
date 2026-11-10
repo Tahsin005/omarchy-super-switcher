@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.1
+
+### Fixed
+
+- Prevented stalled Hyprland IPC from accumulating helper processes. Modifier
+  checks coalesce repeated input, and app and workspace IPC calls use a bounded
+  queue. A deadline stops unresponsive requests.
+
 ## v0.3.0
 
 ### Added

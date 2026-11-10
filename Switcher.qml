@@ -22,6 +22,7 @@ Item {
   property int appSessionWorkspaceId: 0
   property var windowSessionApp: null
   property var quitRequests: []
+  property var pendingCycles: []
   property string workspacePreviewMode: "static"
 
   FileView {
@@ -262,10 +263,31 @@ Item {
     root.quitRequests = pending
   }
 
+  function requestCycle(step, mode) {
+    // Preserve order for ordinary IPC bursts without keeping an unbounded backlog.
+    if (root.pendingCycles.length >= 8) return
+    root.pendingCycles.push(SwitcherKeys.cycleCommand(step, mode))
+    if (!cycleRequest.running) root.runNextCycleRequest()
+  }
+
+  function runNextCycleRequest() {
+    if (!root.pendingCycles.length) return
+    cycleRequest.command = ["hyprctl", "eval", root.pendingCycles.shift()]
+    cycleRequest.running = true
+  }
+
+  HyprlandProcess {
+    id: cycleRequest
+    onExited: function(exitCode, exitStatus) {
+      if (exitCode !== 0 || exitStatus !== 0) root.pendingCycles = []
+      else root.runNextCycleRequest()
+    }
+  }
+
   IpcHandler {
     target: "harryxu.super-switcher"
-    function altTabNext(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(1)]) }
-    function altTabPrev(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(-1)]) }
+    function altTabNext(): void { root.requestCycle(1, "apps") }
+    function altTabPrev(): void { root.requestCycle(-1, "apps") }
     function cycleHeld(step: int, keycodes: string): void {
       var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
       if (heldKeys !== null) root.cycle(step, heldKeys, false)
@@ -278,8 +300,8 @@ Item {
       var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
       if (heldKeys !== null) root.cycleWindows(step, heldKeys)
     }
-    function workspaceNext(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(1, "workspaces")]) }
-    function workspacePrev(): void { Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.cycleCommand(-1, "workspaces")]) }
+    function workspaceNext(): void { root.requestCycle(1, "workspaces") }
+    function workspacePrev(): void { root.requestCycle(-1, "workspaces") }
     function workspaceCycleHeld(step: int, keycodes: string): void {
       var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
       if (heldKeys !== null) root.cycleWorkspaces(step, heldKeys)
@@ -361,7 +383,7 @@ Item {
     onShowRequestedChanged: root.syncSubmap()
   }
 
-  Process {
+  HyprlandProcess {
     id: submapControl
     property bool entering: false
     onExited: function(exitCode, exitStatus) {
@@ -386,7 +408,7 @@ Item {
   }
 
   // Preserve the pointer position when focusing another app or workspace.
-  Process {
+  HyprlandProcess {
     id: cursorCapture
     command: ["hyprctl", "cursorpos"]
     stdout: StdioCollector {
@@ -398,7 +420,7 @@ Item {
     }
   }
 
-  Process {
+  HyprlandProcess {
     id: focusWithoutWarp
     command: ["hyprctl", "eval", "hl.config({ cursor = { no_warps = true } })"]
     onExited: {
@@ -444,16 +466,31 @@ Item {
       if (position)
         Hyprland.dispatch("hl.dsp.cursor.move({ x = " + position[1] + ", y = " + position[2] + " })")
       root.pendingCursorPosition = ""
-      Quickshell.execDetached(["hyprctl", "eval", "hl.config({ cursor = { no_warps = false } })"])
+      enableCursorWarps.request()
     }
   }
 
-  Process {
+  HyprlandProcess {
+    id: enableCursorWarps
+    property bool pending: false
+    command: ["hyprctl", "eval", "hl.config({ cursor = { no_warps = false } })"]
+    function request() {
+      if (running) pending = true
+      else running = true
+    }
+    onExited: {
+      if (!pending) return
+      pending = false
+      running = true
+    }
+  }
+
+  HyprlandProcess {
     id: layerRule
     command: ["hyprctl", "eval", "hl.layer_rule({ match = { namespace = \"harryxu-super-switcher\" }, no_anim = true, animation = \"none\" })"]
   }
 
-  Process {
+  HyprlandProcess {
     id: registerBindings
     command: ["hyprctl", "eval", SwitcherKeys.bindingCommand()]
   }
@@ -477,5 +514,7 @@ Item {
     root.restoreRuntimeConfig()
   }
 
-  Component.onDestruction: Quickshell.execDetached(["hyprctl", "eval", SwitcherKeys.submapCommand(false)])
+  // Cleanup must outlive this component, but the detached helper has a deadline.
+  Component.onDestruction: Quickshell.execDetached(["timeout", "--signal=KILL", "1s",
+    "hyprctl", "eval", SwitcherKeys.submapCommand(false)])
 }
