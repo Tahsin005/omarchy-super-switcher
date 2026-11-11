@@ -19,7 +19,7 @@ local currentSubmap = ""
 local now = 0
 local holdThreshold = ${holdThresholdMs}
 local timer
-local listener
+local listeners = {}
 local keyQueries = 0
 hl = {
   is_key_down = function(code)
@@ -30,9 +30,9 @@ hl = {
   end,
   exec_cmd = function(command) print(command) end,
   on = function(event, callback)
-    assert(event == "input.keyboard.key" and listener == nil)
-    listener = callback
-    return { remove = function() listener = nil end }
+    assert(event == "input.keyboard.key")
+    listeners[callback] = true
+    return { remove = function() listeners[callback] = nil end }
   end,
   timer = function(callback, options)
     assert(timer == nil, "The hold check should reuse its timer")
@@ -65,9 +65,15 @@ o = { rebind = function(chord, description, callback)
   end
   hl.bind(chord, callback, {description = description})
 end }
-local function invoke(chord, submap)
+local function keyEvent(code, event)
+  -- Hyprland emits this event before updating hl.is_key_down or calling bindings.
+  for callback in pairs(listeners) do callback(code, now, event) end
+  down[code] = event == 1 or nil
+end
+local function invoke(chord, submap, code)
   for _, binding in ipairs(bindings) do
     if binding.chord == chord and binding.submap == (submap or "") then
+      keyEvent(code or (chord:find("grave") and 49 or 23), 1)
       binding.callback()
       return
     end
@@ -75,9 +81,7 @@ local function invoke(chord, submap)
   error("Missing binding: " .. chord)
 end
 local function release(code)
-  -- Hyprland dispatches this event before updating hl.is_key_down.
-  if listener then listener(code, now, 0) end
-  down[code] = nil
+  keyEvent(code, 0)
 end
 local function advance(ms)
   local endTime = now + ms
@@ -98,8 +102,8 @@ end
 for (const [label, code] of [["left Super", 133], ["right Super", 134], ["swapped left Alt", 64], ["swapped right Alt", 108]]) {
   test(`${label}: shortcut stays open while held and accepts after release`, () => {
     const dispatch = lua(keys.bindingCommand(), [code, 23], "SUPER + TAB")
-    assert.equal(dispatch, `omarchy-shell -q harryxu.super-switcher cycleHeld 1 ${code}`)
-    const held = keys.parseHeldKeys(dispatch.split(" ").at(-1))
+    assert.equal(dispatch, `omarchy-shell -q harryxu.super-switcher shortcutPressed 1 ${code} apps 1`)
+    const held = keys.parseHeldKeys(dispatch.split(" ").at(-3))
     assert.equal(lua(keys.releaseCommand(held, 9), [code]), "")
     assert.equal(lua(keys.releaseCommand(held, 9), []),
       "omarchy-shell -q harryxu.super-switcher.switcher acceptRelease 9")
@@ -108,7 +112,7 @@ for (const [label, code] of [["left Super", 133], ["right Super", 134], ["swappe
 
 test("reverse switching ignores Shift, and unrelated Alt cannot prolong the session", () => {
   const dispatch = lua(keys.bindingCommand(), [64, 50, 23], "SUPER + SHIFT + TAB")
-  assert.equal(dispatch, "omarchy-shell -q harryxu.super-switcher cycleHeld -1 64")
+  assert.equal(dispatch, "omarchy-shell -q harryxu.super-switcher shortcutPressed -1 64 apps 1")
   const held = keys.parseHeldKeys("64")
   assert.equal(lua(keys.releaseCommand(held, 10), [64, 50, 133]), "")
   assert.equal(lua(keys.releaseCommand(held, 10), [50, 133]),
@@ -127,7 +131,7 @@ test("holding A scopes application shortcuts in both directions and submaps", ()
       for (const [chord, step] of [["SUPER + TAB", 1], ["SUPER + SHIFT + TAB", -1]]) {
         for (const submap of ["", keys.submapName]) {
           assert.equal(lua(`${keys.bindingCommand()} invoke("${chord}", "${submap}")`, [modifier, a, 23]),
-            `omarchy-shell -q harryxu.super-switcher localCycleHeld ${step} ${modifier}`)
+            `omarchy-shell -q harryxu.super-switcher shortcutPressed ${step} ${modifier} localApps 1`)
         }
       }
     }
@@ -173,13 +177,13 @@ test("a short tap commits before the hold threshold, including release before IP
   for (const code of [64, 133]) {
     const command = keys.pendingCommand([code], 19)
     const release = "omarchy-shell -q harryxu.super-switcher.switcher acceptRelease 19"
-    assert.equal(lua(command + "\nassert(not timer and not listener)"), release)
+    assert.equal(lua(command + "\nassert(not timer and not next(listeners))"), release)
     assert.equal(lua(`${command}
       advance(holdThreshold - 20)
       release(23)
-      assert(timer.deadline == holdThreshold and listener and keyQueries == 1)
+      assert(timer.deadline == holdThreshold and next(listeners) and keyQueries == 1)
       release(${code})
-      assert(not timer.deadline and not listener)
+      assert(not timer.deadline and not next(listeners))
       advance(holdThreshold)
     `, [code, 23]), release)
   }
@@ -189,9 +193,9 @@ test("a held modifier requests the panel only at the threshold", () => {
   assert.equal(lua(`${keys.pendingCommand([133, 134], 20)}
     release(133)
     advance(holdThreshold - 1)
-    assert(timer.deadline == holdThreshold and listener)
+    assert(timer.deadline == holdThreshold and next(listeners))
     advance(1)
-    assert(not timer.deadline and not listener)
+    assert(not timer.deadline and not next(listeners))
     advance(holdThreshold)
   `, [133, 134]), "omarchy-shell -q harryxu.super-switcher.switcher acceptHold 20")
 })
@@ -200,7 +204,7 @@ test("the deadline checks the current modifier state if a release was missed", (
   assert.equal(lua(`${keys.pendingCommand([108], 23)}
     down[108] = nil
     advance(holdThreshold)
-    assert(not timer.deadline and not listener)
+    assert(not timer.deadline and not next(listeners))
   `, [108]), "omarchy-shell -q harryxu.super-switcher.switcher acceptRelease 23")
 })
 
@@ -211,9 +215,9 @@ test("a new pending session replaces the old modifier check and deadline", () =>
     do ${keys.pendingCommand([64], 22)} end
     release(133)
     advance(holdThreshold - 1)
-    assert(timer.deadline == 2 * holdThreshold - 10 and listener)
+    assert(timer.deadline == 2 * holdThreshold - 10 and next(listeners))
     advance(1)
-    assert(not timer.deadline and not listener)
+    assert(not timer.deadline and not next(listeners))
   `, [64, 133]), "omarchy-shell -q harryxu.super-switcher.switcher acceptHold 22")
 })
 
@@ -226,6 +230,7 @@ test("startup retries keep switcher bindings without duplicating Escape or remov
     ${keys.bindingCommand()}
     ${keys.bindingCommand()}
     ${keys.bindingCommand()}
+    assert(next(listeners) and not next(listeners, next(listeners)))
     assert(#bindings == 17, "Expected 4 user bindings and 13 switcher bindings")
     local counts = {}
     for _, binding in ipairs(bindings) do
@@ -253,7 +258,7 @@ test("window shortcuts cycle in both submaps and ignore the app scope key", () =
   for (const [chord, step] of [["SUPER + grave", 1], ["SUPER + SHIFT + grave", -1]]) {
     for (const submap of ["", keys.submapName]) {
       assert.equal(lua(`${keys.bindingCommand()} invoke("${chord}", "${submap}")`, [64, "a", 49]),
-        `omarchy-shell -q harryxu.super-switcher windowCycleHeld ${step} 64`)
+        `omarchy-shell -q harryxu.super-switcher shortcutPressed ${step} 64 windows 1`)
     }
   }
 })
@@ -263,8 +268,8 @@ test("workspace shortcuts track Option and remapped Win positions through releas
     for (const [chord, step] of [["ALT + TAB", 1], ["ALT + SHIFT + TAB", -1]]) {
       for (const submap of ["", keys.submapName]) {
         const dispatch = lua(`${keys.bindingCommand()} invoke("${chord}", "${submap}")`, [code, 23, 50])
-        assert.equal(dispatch, `omarchy-shell -q harryxu.super-switcher workspaceCycleHeld ${step} ${code}`)
-        const held = keys.parseHeldKeys(dispatch.split(" ").at(-1))
+        assert.equal(dispatch, `omarchy-shell -q harryxu.super-switcher shortcutPressed ${step} ${code} workspaces 1`)
+        const held = keys.parseHeldKeys(dispatch.split(" ").at(-3))
         assert.equal(lua(keys.releaseCommand(held, 15), [code]), "")
         assert.equal(lua(keys.releaseCommand(held, 15), [23, 50]),
           "omarchy-shell -q harryxu.super-switcher.switcher acceptRelease 15")
@@ -283,8 +288,29 @@ test("submap navigation preserves per-device modifier tracking in both direction
     assert.equal(lua(`${keys.submapCommand(true)}
       assert(currentSubmap == "${keys.submapName}")
       invoke("${chord}", currentSubmap)`, [64]),
-    `omarchy-shell -q harryxu.super-switcher cycleHeld ${step} 64`)
+    `omarchy-shell -q harryxu.super-switcher shortcutPressed ${step} 64 apps 1`)
   }
+})
+
+test("shortcut repeat tracks the physical press through submap entry and stops on release", () => {
+  lua(`${keys.bindingCommand()}
+    local function firstHeld() ${keys.shortcutHeldCommand(1)} end
+    local function secondHeld() ${keys.shortcutHeldCommand(2)} end
+    invoke("SUPER + grave", "", 94)
+    assert(not firstHeld())
+    ${keys.submapCommand(true)}
+    assert(firstHeld())
+    release(64)
+    assert(firstHeld(), "The other captured modifier is still held")
+    release(94)
+    keyEvent(94, 1)
+    assert(not firstHeld(), "A released press must stay invalid even if the key is down again")
+    invoke("SUPER + SHIFT + grave", currentSubmap, 94)
+    assert(not firstHeld() and secondHeld())
+    release(134)
+    keyEvent(134, 1)
+    assert(not secondHeld(), "Re-pressing a modifier cannot revive the old shortcut")
+  `, [64, 134])
 })
 
 test("Escape restores global bindings before contacting the shell, even with Super held", () => {
