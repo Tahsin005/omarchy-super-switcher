@@ -299,6 +299,18 @@ Item {
 
   IpcHandler {
     target: "harryxu.super-switcher"
+    function shortcutPressed(step: int, keycodes: string, mode: string, press: int): void {
+      var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
+      if (heldKeys === null) return
+      if (mode === "localApps") {
+        root.cycle(step, heldKeys, true)
+        mode = "apps"
+      } else if (mode === "apps") root.cycle(step, heldKeys, false)
+      else if (mode === "windows") root.cycleWindows(step, heldKeys)
+      else if (mode === "workspaces") root.cycleWorkspaces(step, heldKeys)
+      else return
+      if (panel.active && panel.mode === mode) panel.repeatShortcut(step, press)
+    }
     function altTabNext(): void { root.requestCycle(1, "apps") }
     function altTabPrev(): void { root.requestCycle(-1, "apps") }
     function cycleHeld(step: int, keycodes: string): void {

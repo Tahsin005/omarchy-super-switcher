@@ -56,6 +56,10 @@ Installation requires no additional setup or edits to your Hyprland configuratio
 Keep Super or Alt/Option held after pressing the shortcut to browse. Release the
 modifier to activate your selection. A quick tap switches without opening the panel.
 
+Hold the full shortcut to advance automatically to the last entry. Holding the
+Shift variant moves back to the first entry. Releasing Tab or the grave key stops
+automatic movement so you can continue browsing with the modifier held.
+
 You can also hold `A` after the app switcher opens. Keep it held to switch to a
 window on the current workspace. Release `A` to see all apps again.
 

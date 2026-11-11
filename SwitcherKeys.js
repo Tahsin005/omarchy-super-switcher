@@ -6,16 +6,48 @@ var holdThresholdMs = 60
 
 // Capture physical Alt/Win positions before the IPC handoff. Hyprland's keysym
 // query can use the global keymap and miss a per-device altwin:swap_alt_win mapping.
-function cycleCommand(step, mode) {
-  var method = mode === "workspaces" ? '"workspaceCycleHeld"'
-    : mode === "windows" ? '"windowCycleHeld"'
-    : '(hl.is_key_down("a") or hl.is_key_down("A")) and "localCycleHeld" or "cycleHeld"'
-  return "local held = {} "
+function cycleCommand(step, mode, fromBinding) {
+  var localScope = '(hl.is_key_down("a") or hl.is_key_down("A"))'
+  var capture = "local held = {} "
     + "for _, code in ipairs({64, 108, 133, 134}) do "
     + "if hl.is_key_down(code) then table.insert(held, code) end end "
+    + "local keycodes = #held > 0 and table.concat(held, \",\") or \"none\" "
+  var direction = step < 0 ? "-1" : "1"
+  if (fromBinding) {
+    var shortcutMode = mode === "apps" ? localScope + ' and "localApps" or "apps"' : '"' + mode + '"'
+    return capture
+      + "shortcut.id = shortcut.id + 1 shortcut.key = shortcut.last_key shortcut.modifiers = held "
+      + "local mode = " + shortcutMode + " "
+      + 'hl.exec_cmd("omarchy-shell -q harryxu.super-switcher shortcutPressed ' + direction
+      + ' " .. keycodes .. " " .. mode .. " " .. shortcut.id)'
+  }
+  var method = mode === "workspaces" ? '"workspaceCycleHeld"'
+    : mode === "windows" ? '"windowCycleHeld"'
+    : localScope + ' and "localCycleHeld" or "cycleHeld"'
+  return capture
     + "local method = " + method + " "
-    + "hl.exec_cmd(\"omarchy-shell -q harryxu.super-switcher \" .. method .. \" "
-    + (step < 0 ? "-1" : "1") + " \" .. (#held > 0 and table.concat(held, \",\") or \"none\"))"
+    + 'hl.exec_cmd("omarchy-shell -q harryxu.super-switcher " .. method .. " ' + direction + ' " .. keycodes)'
+}
+
+function trackShortcutCommand() {
+  // The keyboard event precedes the binding callback. Capture the actual XKB
+  // code so repeat survives a layout or modifier mapping different from the default.
+  return "local shortcut = _G.harryxu_super_switcher_shortcut "
+    + "if not shortcut then shortcut = { id = 0 } _G.harryxu_super_switcher_shortcut = shortcut "
+    + "shortcut.is_held = function(released) "
+    + "if not shortcut.key or shortcut.key == released or not hl.is_key_down(shortcut.key) then return false end "
+    + "for _, code in ipairs(shortcut.modifiers) do "
+    + "if code ~= released and hl.is_key_down(code) then return true end end return false end "
+    + 'shortcut.listener = hl.on("input.keyboard.key", function(code, _, event) '
+    + "if event == 1 then shortcut.last_key = code "
+    + "elseif event == 0 and shortcut.key and not shortcut.is_held(code) then shortcut.key = nil end "
+    + "end) end "
+}
+
+function shortcutHeldCommand(press) {
+  return "local shortcut = _G.harryxu_super_switcher_shortcut "
+    + "return shortcut ~= nil and shortcut.id == " + press
+    + ' and hl.get_current_submap() == "' + submapName + '" and shortcut.is_held()'
 }
 
 function bindingCommand() {
@@ -33,15 +65,15 @@ function bindingCommand() {
   ]
   var globals = shortcuts.map(function(shortcut) {
     return "o.rebind(\"" + shortcut[0] + "\", \"" + shortcut[1] + "\", function() "
-      + cycleCommand(shortcut[2], shortcut[3]) + " end) "
+      + cycleCommand(shortcut[2], shortcut[3], true) + " end) "
   }).join("")
   var submap = shortcuts.map(function(shortcut) {
-    return "hl.bind(\"" + shortcut[0] + "\", function() " + cycleCommand(shortcut[2], shortcut[3])
+    return "hl.bind(\"" + shortcut[0] + "\", function() " + cycleCommand(shortcut[2], shortcut[3], true)
       + " end, { description = \"" + shortcut[1] + "\" }) "
   }).join("")
   // The submap suppresses Super+click window drags while the panel is open.
   // Escape resets it before calling IPC, even if the shell has crashed.
-  return globals + "hl.define_submap(\"" + submapName + "\", function() " + submap
+  return trackShortcutCommand() + globals + "hl.define_submap(\"" + submapName + "\", function() " + submap
     + "if not _G.harryxu_super_switcher_escape then "
     + "hl.bind(\"Escape\", function() "
     + "hl.dispatch(hl.dsp.submap(\"reset\")) "
@@ -112,7 +144,7 @@ function releaseCommand(codes, generation, trackAppScope, revision) {
 }
 
 if (typeof module !== "undefined") module.exports = {
-  cycleCommand: cycleCommand, bindingCommand: bindingCommand,
+  cycleCommand: cycleCommand, bindingCommand: bindingCommand, shortcutHeldCommand: shortcutHeldCommand,
   parseHeldKeys: parseHeldKeys, pendingCommand: pendingCommand, releaseCommand: releaseCommand,
   submapName: submapName, submapCommand: submapCommand
 }

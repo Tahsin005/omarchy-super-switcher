@@ -30,6 +30,8 @@ PanelWindow {
   property int modifierQueryRevision: 0
   property bool modifierQueryPending: false
   property var heldModifierKeys: []
+  property int shortcutPress: 0
+  property int shortcutStep: 1
   readonly property bool keyboardReady: root.active && root.inputReady && keyCatcher.activeFocus && keyCatcher.Window.active
   readonly property real naturalWidth: root.apps.length ? root.apps.length * root.slotWidth + (root.apps.length - 1) * root.slotSpacing + 2 * root.sidePadding : 0
   readonly property real surfaceWidth: Math.min(root.naturalWidth, Math.max(0, root.width - 2 * root.screenMargin))
@@ -69,7 +71,11 @@ PanelWindow {
   }
 
   onKeyboardReadyChanged: if (root.keyboardReady) root.checkModifierReleased()
-  onReleaseGenerationChanged: root.modifierQueryPending = false
+  onReleaseGenerationChanged: {
+    root.modifierQueryPending = false
+    root.shortcutPress = 0
+    shortcutRepeat.stop()
+  }
 
   function checkModifierReleased() {
     if (!root.keyboardReady) return
@@ -132,6 +138,57 @@ PanelWindow {
     }
   }
 
+  function repeatShortcut(step, press) {
+    shortcutRepeat.stop()
+    shortcutRepeat.interval = 300
+    root.shortcutPress = press
+    root.shortcutStep = step < 0 ? -1 : 1
+    root.scheduleShortcutRepeat()
+  }
+
+  function canRepeatShortcut() {
+    var nextIndex = root.selectedIndex + root.shortcutStep
+    return root.active && root.visible && root.shortcutPress > 0
+      && nextIndex >= 0 && nextIndex < root.apps.length
+  }
+
+  function scheduleShortcutRepeat() {
+    if (root.canRepeatShortcut() && !shortcutRepeat.running && !shortcutCheck.running)
+      shortcutRepeat.start()
+  }
+
+  Timer {
+    id: shortcutRepeat
+    onTriggered: {
+      if (!root.canRepeatShortcut()) return
+      shortcutCheck.generation = root.releaseGeneration
+      shortcutCheck.press = root.shortcutPress
+      shortcutCheck.command = ["hyprctl", "repl", SwitcherKeys.shortcutHeldCommand(shortcutCheck.press)]
+      shortcutCheck.running = true
+    }
+  }
+
+  HyprlandProcess {
+    id: shortcutCheck
+    property int generation: 0
+    property int press: 0
+    stdout: StdioCollector { id: shortcutResult }
+    onExited: function(exitCode, exitStatus) {
+      // A new shortcut press can replace a repeat within the same panel session.
+      if (generation === root.releaseGeneration && press === root.shortcutPress) {
+        if (exitCode !== 0 || exitStatus !== 0 || shortcutResult.text.trim() !== "true"
+            || !root.canRepeatShortcut()) {
+          root.shortcutPress = 0
+          return
+        }
+        if (root.shortcutStep > 0) root.next(); else root.prev()
+        if (!root.canRepeatShortcut()) root.shortcutPress = 0
+        shortcutRepeat.interval = 60
+      }
+      Qt.callLater(root.scheduleShortcutRepeat)
+    }
+  }
+
   function open(list, initialIndex, heldKeys, mode) {
     pointerGate.reset()
     root.releaseGeneration++
@@ -188,7 +245,12 @@ PanelWindow {
   }
 
   visible: root.showRequested && root.inputReady
-  onVisibleChanged: if (root.visible) keyCatcher.forceActiveFocus()
+  onVisibleChanged: {
+    if (root.visible) {
+      keyCatcher.forceActiveFocus()
+      root.scheduleShortcutRepeat()
+    } else shortcutRepeat.stop()
+  }
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
   WlrLayershell.layer: WlrLayer.Overlay
