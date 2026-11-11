@@ -7,6 +7,7 @@ STYLE_FILE="$CONFIG_DIR/super-switcher-border-style"
 PLUGINS_DIR="$CONFIG_DIR/plugins"
 TARGET_DIR="$PLUGINS_DIR/harryxu.super-switcher"
 
+REPO_URL="${REPO_URL:-https://github.com/Tahsin005/omarchy-super-switcher.git}"
 STYLE=""
 ENABLE=true
 
@@ -89,9 +90,17 @@ mkdir -p "$CONFIG_DIR"
 echo "$STYLE" > "$STYLE_FILE"
 echo "✓ Saved border style preference: $STYLE"
 
-# Install / link plugin if run from an external directory
+# Install / link plugin if run from an external directory or piped
 mkdir -p "$PLUGINS_DIR"
-if [[ "$SCRIPT_DIR" != "$TARGET_DIR" ]]; then
+if [[ ! -f "$SCRIPT_DIR/manifest.json" ]]; then
+  if [[ -L "$TARGET_DIR" && ! -e "$TARGET_DIR" ]]; then
+    rm -f "$TARGET_DIR"
+  fi
+  if [[ ! -d "$TARGET_DIR" && ! -L "$TARGET_DIR" ]]; then
+    echo "Cloning plugin into $TARGET_DIR..."
+    git clone "$REPO_URL" "$TARGET_DIR"
+  fi
+elif [[ "$SCRIPT_DIR" != "$TARGET_DIR" ]]; then
   if [[ -L "$TARGET_DIR" ]]; then
     if [[ "$(readlink -f "$TARGET_DIR")" != "$SCRIPT_DIR" ]]; then
       echo "Updating plugin target link at $TARGET_DIR..."
@@ -115,9 +124,13 @@ fi
 
 # Link convenience launcher to ~/.local/bin if available
 LOCAL_BIN="${HOME}/.local/bin"
-if [[ -d "$LOCAL_BIN" || -w "$HOME" ]]; then
+LAUNCHER="$TARGET_DIR/install.sh"
+if [[ -f "$SCRIPT_DIR/install.sh" ]]; then
+  LAUNCHER="$SCRIPT_DIR/install.sh"
+fi
+if [[ -f "$LAUNCHER" && (-d "$LOCAL_BIN" || -w "$HOME") ]]; then
   mkdir -p "$LOCAL_BIN"
-  ln -sf "$SCRIPT_DIR/install.sh" "$LOCAL_BIN/omarchy-super-switcher-setup"
+  ln -sf "$LAUNCHER" "$LOCAL_BIN/omarchy-super-switcher-setup"
 fi
 
 if [[ "$ENABLE" == true ]]; then
