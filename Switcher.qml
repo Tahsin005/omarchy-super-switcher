@@ -24,6 +24,19 @@ Item {
   property var quitRequests: []
   property var pendingCycles: []
   property string workspacePreviewMode: "static"
+  property string borderStyle: "squared"
+  readonly property bool roundedBorders: borderStyle === "rounded"
+
+  FileView {
+    id: borderStyleFile
+    path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/omarchy/super-switcher-border-style"
+    watchChanges: true
+    printErrors: false
+    blockWrites: true
+    onFileChanged: reload()
+    onLoaded: root.borderStyle = text().trim() === "rounded" ? "rounded" : "squared"
+    onLoadFailed: root.borderStyle = "squared"
+  }
 
   FileView {
     id: previewModeFile
@@ -306,6 +319,19 @@ Item {
       var heldKeys = SwitcherKeys.parseHeldKeys(keycodes)
       if (heldKeys !== null) root.cycleWorkspaces(step, heldKeys)
     }
+    function borderStyle(): string { return root.borderStyle }
+    function setBorderStyle(style: string): string {
+      var normalized = String(style).trim().toLowerCase()
+      if (normalized !== "squared" && normalized !== "square" && normalized !== "rounded")
+        return "Expected squared or rounded."
+      var mode = normalized === "rounded" ? "rounded" : "squared"
+      borderStyleFile.setText(mode + "\n")
+      // Read back the saved value before reporting success to the caller.
+      borderStyleFile.reload()
+      borderStyleFile.waitForJob()
+      return borderStyleFile.loaded && borderStyleFile.text().trim() === mode
+        ? mode : "Could not save border style."
+    }
     function workspacePreviewMode(): string { return root.workspacePreviewMode }
     function setWorkspacePreviewMode(mode: string): string {
       if (mode !== "static" && mode !== "live") return "Expected static or live."
@@ -370,6 +396,7 @@ Item {
     id: panel
     screen: root.focusedScreen()
     windowApp: root.windowSessionApp
+    roundedBorders: root.roundedBorders
     iconSourceFor: function(app) { return root.iconSource(app) }
     windowIconSourceFor: function(window) {
       var app = SwitcherModel.appForWindow(window, root.appEntries())

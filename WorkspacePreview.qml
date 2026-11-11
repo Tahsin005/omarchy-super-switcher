@@ -11,7 +11,8 @@ Item {
   property var iconSourceFor: function(window) { return "" }
   property bool selected: false
   property bool live: false
-  property real cornerRadius: 12
+  property bool roundedBorders: false
+  property real cornerRadius: root.roundedBorders ? 12 : 0
   readonly property var windows: workspace && workspace.toplevels ? workspace.toplevels.values : []
   readonly property var geometry: WorkspaceModel.monitorGeometry(workspace ? workspace.monitor : null)
   readonly property real previewScale: Math.min(width / geometry.width, height / geometry.height)

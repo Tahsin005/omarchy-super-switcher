@@ -23,6 +23,7 @@ PanelWindow {
   readonly property bool workspaceMode: root.mode === "workspaces"
   property var windowApp: null
   property bool workspaceLivePreview: false
+  property bool roundedBorders: false
   property var apps: []
   property int selectedIndex: -1
   property int releaseGeneration: 0
@@ -43,8 +44,8 @@ PanelWindow {
   property int sidePadding: 24
   readonly property real rowHeight: root.appMode ? root.iconSize : root.slotWidth * 10 / 16 + 40
   readonly property real surfaceHeight: root.rowHeight + 2 * root.verticalPadding + root.windowHeaderHeight
-  property int surfaceRadius: root.appMode ? 36 : 28
-  property int selectionRadius: 20
+  property int surfaceRadius: root.roundedBorders ? (root.appMode ? 36 : 28) : 0
+  property int selectionRadius: root.roundedBorders ? 20 : 0
   property int screenMargin: 32
   // Equal space above and below the icons; the name lives in the lower inset.
   property int verticalPadding: root.appMode ? 32 : 24
@@ -288,7 +289,7 @@ PanelWindow {
           anchors.centerIn: parent
           width: root.slotWidth
           height: root.rowHeight
-          radius: root.appMode ? root.selectionRadius : 16
+          radius: root.roundedBorders ? (root.appMode ? root.selectionRadius : 16) : 0
           color: Commons.Util.alpha(Commons.Color.accent, root.appMode ? 0.28 : 0.08)
           border.color: Commons.Util.alpha(Commons.Color.accent, 0.40)
           border.width: root.appMode ? 2 : 0
@@ -321,6 +322,7 @@ PanelWindow {
             iconSourceFor: root.windowIconSourceFor
             selected: entryTile.selected
             live: root.workspaceLivePreview
+            roundedBorders: root.roundedBorders
           }
         }
 
@@ -329,6 +331,7 @@ PanelWindow {
           WindowPreview {
             window: entryTile.window
             selected: entryTile.selected
+            roundedBorders: root.roundedBorders
           }
         }
 

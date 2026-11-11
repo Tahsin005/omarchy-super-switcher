@@ -7,3 +7,4 @@ cd "$(dirname "$0")/.."
 # /usr/lib/qt6/bin/qmllint --ignore-settings --only-explicit-categories --syntax error Switcher.qml SwitcherPanel.qml WorkspacePreview.qml
 # omarchy plugin validate .
 node --test tests/*.test.js
+./tests/install.test.sh

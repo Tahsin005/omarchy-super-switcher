@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added configurable border styles (`squared` vs `rounded`) for the application,
+  window, and workspace switchers.
+- Added interactive `install.sh` installation script giving users the choice
+  between squared and rounded borders during install or setup.
+- Added IPC methods `borderStyle` and `setBorderStyle` to query and set the border
+  style live via `omarchy-shell`.
+
+### Changed
+
+- Changed default border style to squared sharp borders across the switcher
+  surface, selection highlights, and window/workspace previews.
+
 ## v0.3.1
 
 ### Fixed

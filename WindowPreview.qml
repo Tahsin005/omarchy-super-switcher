@@ -8,8 +8,9 @@ ClippingRectangle {
 
   property var window: null
   property bool selected: false
+  property bool roundedBorders: false
 
-  radius: 12
+  radius: root.roundedBorders ? 12 : 0
   color: Commons.Color.background
   border.width: root.selected ? 3 : 1
   border.color: root.selected

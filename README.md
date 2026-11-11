@@ -10,6 +10,25 @@ Requires Omarchy with the Quickshell-based Omarchy shell and Hyprland 0.56 or
 later with its Lua configuration API. The plugin uses `omarchy-shell`, `hyprctl`,
 and the `timeout` command from GNU coreutils.
 
+### Option 1: Install with border choice (Interactive)
+
+Clone the repository and run `./install.sh`, which prompts you to choose between
+squared (default) or rounded borders:
+
+```bash
+git clone https://github.com/harryxu/omarchy-super-switcher.git
+cd omarchy-super-switcher
+./install.sh
+```
+
+You can also specify `--squared` or `--rounded` directly:
+
+```bash
+./install.sh --squared
+```
+
+### Option 2: Install via Omarchy CLI
+
 ```bash
 omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enable
 ```
@@ -67,6 +86,24 @@ its thumbnail. The panel only opens when the app has at least two windows.
 
 The switcher shows regular workspaces across all monitors, including empty
 ones. It lists numbered workspaces in order, then named workspaces alphabetically.
+
+## Border style settings
+
+The switcher uses squared borders by default. You can choose between squared
+and rounded borders during installation, open the interactive terminal picker,
+or toggle them via CLI at any time:
+
+```bash
+# Open interactive terminal picker (gum choose)
+omarchy-super-switcher-setup
+
+# Or change via CLI directly
+omarchy-shell harryxu.super-switcher borderStyle
+omarchy-shell harryxu.super-switcher setBorderStyle squared
+omarchy-shell harryxu.super-switcher setBorderStyle rounded
+```
+
+Changes apply immediately to your switcher.
 
 ## Workspace preview settings
 
