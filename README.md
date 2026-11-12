@@ -2,8 +2,6 @@
 
 A macOS-style app, window, and workspace switcher for Omarchy.
 
-![Omarchy Super Switcher Preview (Squared Borders)](preview-squared.png)
-
 https://github.com/user-attachments/assets/e7e3ffde-b8e6-4135-ad40-71d9cadf977b
 
 ## Installation
@@ -76,6 +74,8 @@ window on the current workspace. Release `A` to see all apps again.
 If `Q` brings up a save dialog, the switcher closes and focuses it.
 
 ## Screenshots
+
+![Omarchy Super Switcher with squared borders](preview-squared.png)
 
 ### Application switcher
 
