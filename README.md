@@ -2,6 +2,8 @@
 
 A macOS-style app, window, and workspace switcher for Omarchy.
 
+![Omarchy Super Switcher Preview (Squared Borders)](preview-squared.png)
+
 https://github.com/user-attachments/assets/e7e3ffde-b8e6-4135-ad40-71d9cadf977b
 
 ## Installation
@@ -10,7 +12,15 @@ Requires Omarchy with the Quickshell-based Omarchy shell and Hyprland 0.56 or
 later with its Lua configuration API. The plugin uses `omarchy-shell`, `hyprctl`,
 and the `timeout` command from GNU coreutils.
 
-### Option 1: Install with border choice (Interactive)
+### Option 1: Quick install (Interactive border choice)
+
+Run the installer directly from your terminal:
+
+```bash
+bash <(curl -sSL https://raw.githubusercontent.com/harryxu/omarchy-super-switcher/master/install.sh)
+```
+
+### Option 2: Clone and run installer
 
 Clone the repository and run `./install.sh`, which prompts you to choose between
 squared (default) or rounded borders:
@@ -27,7 +37,7 @@ You can also specify `--squared` or `--rounded` directly:
 ./install.sh --squared
 ```
 
-### Option 2: Install via Omarchy CLI
+### Option 3: Install via Omarchy CLI
 
 ```bash
 omarchy plugin add https://github.com/harryxu/omarchy-super-switcher.git --enable
@@ -93,9 +103,14 @@ ones. It lists numbered workspaces in order, then named workspaces alphabeticall
 
 ## Border style settings
 
-The switcher uses squared borders by default. You can choose between squared
-and rounded borders during installation, open the interactive terminal picker,
-or toggle them via CLI at any time:
+The switcher uses squared borders by default, and supports classic rounded borders:
+
+| Squared borders (Default) | Rounded borders |
+| :---: | :---: |
+| ![Squared borders](preview-squared.png) | ![Rounded borders](preview.png) |
+
+You can choose between squared and rounded borders during installation, open the
+interactive terminal picker, or toggle them via CLI at any time:
 
 ```bash
 # Open interactive terminal picker (gum choose)
