@@ -28,12 +28,12 @@ if [[ "$content" != "rounded" ]]; then
 fi
 echo "PASS: install.sh --rounded writes 'rounded'"
 
-# Test 3: non-interactive default without flags should be squared
+# Test 3: non-interactive default without flags should be rounded
 XDG_CONFIG_HOME="$TMP_DIR/config3" ./install.sh --no-enable </dev/null >/dev/null
 content=$(cat "$TMP_DIR/config3/omarchy/super-switcher-border-style" | tr -d ' \n\r')
-if [[ "$content" != "squared" ]]; then
-  echo "FAIL: expected default 'squared', got '$content'" >&2
+if [[ "$content" != "rounded" ]]; then
+  echo "FAIL: expected default 'rounded', got '$content'" >&2
   exit 1
 fi
-echo "PASS: install.sh non-interactive default writes 'squared'"
+echo "PASS: install.sh non-interactive default writes 'rounded'"
 

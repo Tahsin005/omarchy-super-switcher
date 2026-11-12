@@ -18,8 +18,8 @@ Usage: ./install.sh [OPTIONS]
 Install and configure Omarchy Super Switcher.
 
 Options:
-  --squared, --square   Configure squared (sharp) borders (default)
-  --rounded             Configure rounded (macOS-style) borders
+  --rounded             Configure rounded (macOS-style) borders (default)
+  --squared, --square   Configure squared (sharp) borders
   --no-enable           Do not automatically enable the plugin or restart the shell
   -h, --help            Show this help message
 
@@ -58,30 +58,30 @@ if [[ -z "$STYLE" ]]; then
     if command -v gum >/dev/null 2>&1; then
       choice=$(gum choose \
         --header="Choose border style for harryxu.super-switcher:" \
-        --selected="squared" \
-        "squared" \
-        "rounded") || true
+        --selected="rounded" \
+        "rounded" \
+        "squared") || true
       if [[ -n "$choice" ]]; then
         STYLE="$choice"
       fi
     else
       echo "Choose border style for harryxu.super-switcher:"
-      echo "  1) squared [default]"
-      echo "  2) rounded"
+      echo "  1) rounded [default]"
+      echo "  2) squared"
       read -r -p "Enter choice [1/2] (default: 1): " input_choice || true
       case "$input_choice" in
-        2|[Rr]|[Rr]ounded)
-          STYLE="rounded"
+        2|[Ss]|[Ss]quare|[Ss]quared)
+          STYLE="squared"
           ;;
         *)
-          STYLE="squared"
+          STYLE="rounded"
           ;;
       esac
     fi
   fi
   # Fallback for non-interactive execution without flags
   if [[ -z "$STYLE" ]]; then
-    STYLE="squared"
+    STYLE="rounded"
   fi
 fi
 

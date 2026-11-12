@@ -23,7 +23,7 @@ PanelWindow {
   readonly property bool workspaceMode: root.mode === "workspaces"
   property var windowApp: null
   property bool workspaceLivePreview: false
-  property bool roundedBorders: false
+  property bool roundedBorders: true
   property var apps: []
   property int selectedIndex: -1
   property int releaseGeneration: 0

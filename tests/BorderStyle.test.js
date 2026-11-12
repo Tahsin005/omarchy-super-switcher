@@ -26,21 +26,21 @@ test("Switcher.qml, SwitcherPanel.qml, WorkspacePreview.qml, and WindowPreview.q
   const ws = fs.readFileSync("WorkspacePreview.qml", "utf8")
   const win = fs.readFileSync("WindowPreview.qml", "utf8")
 
-  assert.match(switcher, /property string borderStyle:\s*"squared"/)
+  assert.match(switcher, /property string borderStyle:\s*"rounded"/)
   assert.match(switcher, /readonly property bool roundedBorders:\s*borderStyle === "rounded"/)
   assert.match(switcher, /function borderStyle\(\):\s*string/)
   assert.match(switcher, /function setBorderStyle\(style:\s*string\):\s*string/)
   assert.match(switcher, /roundedBorders:\s*root\.roundedBorders/)
 
-  assert.match(panel, /property bool roundedBorders:\s*false/)
+  assert.match(panel, /property bool roundedBorders:\s*true/)
   assert.match(panel, /property int surfaceRadius:\s*root\.roundedBorders \? \(root\.appMode \? 36 : 28\) : 0/)
   assert.match(panel, /property int selectionRadius:\s*root\.roundedBorders \? 20 : 0/)
   assert.match(panel, /radius:\s*root\.roundedBorders \? \(root\.appMode \? root\.selectionRadius : 16\) : 0/)
 
-  assert.match(ws, /property bool roundedBorders:\s*false/)
+  assert.match(ws, /property bool roundedBorders:\s*true/)
   assert.match(ws, /property real cornerRadius:\s*root\.roundedBorders \? 12 : 0/)
 
-  assert.match(win, /property bool roundedBorders:\s*false/)
+  assert.match(win, /property bool roundedBorders:\s*true/)
   assert.match(win, /radius:\s*root\.roundedBorders \? 12 : 0/)
 })
 

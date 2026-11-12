@@ -24,7 +24,7 @@ Item {
   property var quitRequests: []
   property var pendingCycles: []
   property string workspacePreviewMode: "static"
-  property string borderStyle: "squared"
+  property string borderStyle: "rounded"
   readonly property bool roundedBorders: borderStyle === "rounded"
 
   FileView {
@@ -34,8 +34,8 @@ Item {
     printErrors: false
     blockWrites: true
     onFileChanged: reload()
-    onLoaded: root.borderStyle = text().trim() === "rounded" ? "rounded" : "squared"
-    onLoadFailed: root.borderStyle = "squared"
+    onLoaded: root.borderStyle = text().trim() === "squared" || text().trim() === "square" ? "squared" : "rounded"
+    onLoadFailed: root.borderStyle = "rounded"
   }
 
   FileView {

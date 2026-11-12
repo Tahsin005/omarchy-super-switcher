@@ -21,7 +21,7 @@ bash <(curl -sSL https://raw.githubusercontent.com/harryxu/omarchy-super-switche
 ### Option 2: Clone and run installer
 
 Clone the repository and run `./install.sh`, which prompts you to choose between
-squared (default) or rounded borders:
+rounded (default) or squared borders:
 
 ```bash
 git clone https://github.com/harryxu/omarchy-super-switcher.git
@@ -29,10 +29,10 @@ cd omarchy-super-switcher
 ./install.sh
 ```
 
-You can also specify `--squared` or `--rounded` directly:
+You can also specify `--rounded` or `--squared` directly:
 
 ```bash
-./install.sh --squared
+./install.sh --rounded
 ```
 
 ### Option 3: Install via Omarchy CLI
@@ -75,15 +75,17 @@ If `Q` brings up a save dialog, the switcher closes and focuses it.
 
 ## Screenshots
 
-![Omarchy Super Switcher with squared borders](preview-squared.png)
-
 ### Application switcher
 
-![Application switcher with native app icons and the selected app's name](assets/screenshots/app-switcher.png)
+| Rounded borders (Default) | Squared borders |
+| :---: | :---: |
+| ![Application switcher with rounded borders](assets/screenshots/app-switcher.png) | ![Application switcher with squared borders](assets/screenshots/app-switcher-squared.png) |
 
 ### Workspace switcher
 
-![Workspace switcher showing Browse, Code, and Files in a demo session](assets/screenshots/workspace-switcher.png)
+| Rounded borders (Default) | Squared borders |
+| :---: | :---: |
+| ![Workspace switcher with rounded borders](assets/screenshots/workspace-switcher.png) | ![Workspace switcher with squared borders](assets/screenshots/workspace-switcher-squared.png) |
 
 ## Applications
 
@@ -103,13 +105,13 @@ ones. It lists numbered workspaces in order, then named workspaces alphabeticall
 
 ## Border style settings
 
-The switcher uses squared borders by default, and supports classic rounded borders:
+The switcher uses classic rounded borders by default, and supports squared borders:
 
-| Squared borders (Default) | Rounded borders |
+| Rounded borders (Default) | Squared borders |
 | :---: | :---: |
-| ![Squared borders](preview-squared.png) | ![Rounded borders](preview.png) |
+| ![Rounded borders](preview.png) | ![Squared borders](preview-squared.png) |
 
-You can choose between squared and rounded borders during installation, open the
+You can choose between rounded and squared borders during installation, open the
 interactive terminal picker, or toggle them via CLI at any time:
 
 ```bash

@@ -11,7 +11,7 @@ Item {
   property var iconSourceFor: function(window) { return "" }
   property bool selected: false
   property bool live: false
-  property bool roundedBorders: false
+  property bool roundedBorders: true
   property real cornerRadius: root.roundedBorders ? 12 : 0
   readonly property var windows: workspace && workspace.toplevels ? workspace.toplevels.values : []
   readonly property var geometry: WorkspaceModel.monitorGeometry(workspace ? workspace.monitor : null)
